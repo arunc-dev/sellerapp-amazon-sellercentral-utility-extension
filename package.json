@@ -1,0 +1,43 @@
+{
+  "name": "chrome-extension-react-ts",
+  "displayName": "React.ts Chrome Extension",
+  "version": "0.0.0",
+  "author": "",
+  "description": "",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "chrome-extension",
+    "react",
+    "vite",
+    "create-chrome-ext"
+  ],
+  "engines": {
+    "node": ">=14.18.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "fmt": "prettier --write '**/*.{tsx,ts,json,css,scss,md}'",
+    "zip": "npm run build && node src/zip.js"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^6.1.0",
+    "antd": "^6.1.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.3.0",
+    "@types/chrome": "^0.1.32",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
+    "gulp": "^5.0.1",
+    "gulp-zip": "^6.0.0",
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.0"
+  }
+}

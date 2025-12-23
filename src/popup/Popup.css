@@ -1,0 +1,171 @@
+body {
+  margin: 0;
+}
+
+.ba-layout {
+  min-height: 520px;
+  background: #f5f7fb;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.ba-header {
+  padding: 12px 16px;
+  background: #f5f7fb;
+  border-bottom: none;
+}
+
+.ba-content {
+  padding: 8px 16px 0;
+}
+
+.ba-footer {
+  padding: 16px;
+  text-align: center;
+  background: #f5f7fb;
+}
+
+.ba-title-row {
+  margin-bottom: 12px;
+}
+
+.ba-title {
+  margin: 0;
+}
+
+.ba-tutorial {
+  font-size: 12px;
+}
+
+.ba-card-grid {
+  margin-top: 4px;
+}
+
+.ba-card {
+  border-radius: 16px;
+  box-shadow: none;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.ba-card-clickable {
+  cursor: pointer;
+}
+
+.ba-card-primary {
+  background: linear-gradient(135deg, #1976ff, #0052cc);
+}
+
+.ba-card-primary .ba-card-title {
+  color: #ffffff;
+}
+
+.ba-card-primary:hover {
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+  transform: translateY(-2px) scale(1.02);
+}
+
+.ba-card-primary:hover .ba-card-title {
+  color: #1f2933;
+}
+
+.ba-card-primary:hover .ba-card-cta.ant-btn-primary {
+  background-color: #1677ff;
+}
+
+.ba-card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.ba-card-title {
+  font-weight: 600;
+}
+
+.ba-card-cta {
+  align-self: flex-end;
+}
+
+.ba-lang-btn {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ba-lang-code {
+  margin-left: 6px;
+}
+
+.ba-avatar {
+  background: #ff4d4f;
+}
+
+.ba-powered-by {
+  font-size: 12px;
+}
+
+.ba-brand {
+  font-weight: 600;
+}
+
+.ba-tabs-wrapper {
+  margin: 8px 0 16px;
+}
+
+.ba-tabs {
+  width: 100%;
+  background: #f0f2f5;
+  border-radius: 999px;
+  padding: 2px;
+}
+
+.ba-input-block {
+  margin-bottom: 16px;
+}
+
+.ba-input-large .ant-input {
+  border-radius: 16px;
+}
+
+.ba-textarea-muted::placeholder {
+  color: #c4ccd9;
+}
+
+.ba-input-asins .ant-input {
+  border-radius: 16px;
+}
+
+.ba-input-marketplace .ant-select-selector {
+  border-radius: 16px !important;
+}
+
+.ba-select-full {
+  width: 100%;
+}
+
+.ba-filters {
+  margin-top: 8px;
+}
+
+.ba-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ba-filter-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f4fbf;
+}
+
+.ba-select-accent .ant-select-selector {
+  border-radius: 14px !important;
+  border-width: 2px !important;
+  border-color: #1f4fbf !important;
+}
