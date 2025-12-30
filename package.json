@@ -26,6 +26,7 @@
     "@ant-design/icons": "^6.1.0",
     "antd": "^6.1.1",
     "react": "^19.2.3",
+    "react-circle-flags": "^0.0.25",
     "react-dom": "^19.2.3"
   },
   "devDependencies": {

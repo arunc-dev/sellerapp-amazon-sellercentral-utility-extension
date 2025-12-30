@@ -20,6 +20,8 @@ import {
 
 import "./Popup.css";
 import { useCustomerJourneyMetadata } from "./useCustomerJourneyMetadata";
+import { ReviewGeoDropdown } from "../components/ReviewGeoDropdown";
+import { GeoMapsModel } from "../constants/geo-constants";
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text, Link } = Typography;
@@ -45,25 +47,12 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
   return (
     <Layout className="ba-layout">
       <Header className="ba-header">
-        <Row justify="space-between" align="middle">
-          <Space size="middle">
-            <Button type="text" icon={<MenuOutlined />} />
-            <Button type="text" icon={<SearchOutlined />} />
-          </Space>
-
-          <Space size="middle" align="center">
-            <Button
-              className="ba-lang-btn"
-              icon={<GlobalOutlined />}
-              shape="round"
-            >
-              <span className="ba-lang-code">US</span>
-            </Button>
-            <Button type="text" icon={<BulbOutlined />} />
-            <Avatar size={28} className="ba-avatar">
-              SA
-            </Avatar>
-          </Space>
+        <Row justify="end" align="middle">
+          <ReviewGeoDropdown
+            selectedGeo={(geoDetails: GeoMapsModel) => {
+              console.log("Selected geo:", geoDetails);
+            }}
+          />
         </Row>
       </Header>
 
@@ -80,9 +69,6 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
               Coupon Performance Report
             </Title>
           </Space>
-          <Link className="ba-tutorial" href="#">
-            Tutorial video ↗
-          </Link>
         </Row>
 
         <div className="ba-input-block ba-input-marketplace">
@@ -157,19 +143,19 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
             </div>
           </Col>
         </Row>
-          <Row justify="end" className="ba-actions-row">
-            <Col>
-              <Button
-                type="primary"
-                onClick={() => {
-                  // TODO: replace with Coupon Performance fetch API call
-                  console.log("Fetch Coupon Performance report");
-                }}
-              >
-                Fetch
-              </Button>
-            </Col>
-          </Row>
+        <Row justify="end" className="ba-actions-row">
+          <Col>
+            <Button
+              type="primary"
+              onClick={() => {
+                // TODO: replace with Coupon Performance fetch API call
+                console.log("Fetch Coupon Performance report");
+              }}
+            >
+              Fetch
+            </Button>
+          </Col>
+        </Row>
       </Content>
 
       <Footer className="ba-footer">

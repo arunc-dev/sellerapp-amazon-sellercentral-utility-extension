@@ -1,190 +1,548 @@
-console.log('background is running')
+console.log("background is running");
 
 // Cache CSRF token to avoid fetching dashboard HTML repeatedly
-let csrfTokenCache: { token: string; timestamp: number } | null = null
-const CSRF_TOKEN_CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+let csrfTokenCache: { token: string; timestamp: number } | null = null;
+const CSRF_TOKEN_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 async function getCsrfToken(): Promise<string> {
   // Return cached token if still valid
-  if (csrfTokenCache && Date.now() - csrfTokenCache.timestamp < CSRF_TOKEN_CACHE_DURATION) {
-    console.log('[Background] Using cached CSRF token')
-    return csrfTokenCache.token
+  if (
+    csrfTokenCache &&
+    Date.now() - csrfTokenCache.timestamp < CSRF_TOKEN_CACHE_DURATION
+  ) {
+    console.log("[Background] Using cached CSRF token");
+    return csrfTokenCache.token;
   }
 
-  console.log('[Background] Fetching new CSRF token')
+  console.log("[Background] Fetching new CSRF token");
   const dashboardResponse = await fetch(
-    'https://sellercentral.amazon.com/brand-analytics/dashboard/query-performance',
+    "https://sellercentral.amazon.com/brand-analytics/dashboard/query-performance",
     {
-      method: 'GET',
-      credentials: 'include',
-    },
-  )
+      method: "GET",
+      credentials: "include",
+    }
+  );
 
   if (!dashboardResponse.ok) {
-    throw new Error(`Dashboard request failed with ${dashboardResponse.status}`)
+    throw new Error(
+      `Dashboard request failed with ${dashboardResponse.status}`
+    );
   }
 
-  const html = await dashboardResponse.text()
+  const html = await dashboardResponse.text();
   const match = html.match(
-    /<meta[^>]+name=["']anti-csrftoken-a2z["'][^>]*content=["']([^"']+)/i,
-  )
-  const csrfToken = match && match[1] ? match[1] : ''
+    /<meta[^>]+name=["']anti-csrftoken-a2z["'][^>]*content=["']([^"']+)/i
+  );
+  const csrfToken = match && match[1] ? match[1] : "";
 
   if (!csrfToken) {
-    throw new Error('CSRF token not found in dashboard HTML')
+    throw new Error("CSRF token not found in dashboard HTML");
   }
 
   // Cache the token
-  csrfTokenCache = { token: csrfToken, timestamp: Date.now() }
-  console.log('[Background] CSRF token cached')
-  
-  return csrfToken
+  csrfTokenCache = { token: csrfToken, timestamp: Date.now() };
+  console.log("[Background] CSRF token cached");
+
+  return csrfToken;
 }
 
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-  if (request.type === 'COUNT') {
-    console.log('background has received a message from popup, and count is ', request?.count)
+  if (request.type === "COUNT") {
+    console.log(
+      "background has received a message from popup, and count is ",
+      request?.count
+    );
   }
 
-  if (request.type === 'GET_CUSTOMER_JOURNEY_METADATA') {
-    ;(async () => {
+  if (request.type === "GET_CUSTOMER_JOURNEY_METADATA") {
+    (async () => {
       try {
         const dashboardResponse = await fetch(
-          'https://sellercentral.amazon.com/brand-analytics/dashboard/customer-journey',
+          "https://sellercentral.amazon.com/brand-analytics/dashboard/customer-journey",
           {
-            method: 'GET',
-            credentials: 'include',
-          },
-        )
+            method: "GET",
+            credentials: "include",
+          }
+        );
 
         if (!dashboardResponse.ok) {
-          throw new Error(`Dashboard request failed with ${dashboardResponse.status}`)
+          throw new Error(
+            `Dashboard request failed with ${dashboardResponse.status}`
+          );
         }
 
-        const html = await dashboardResponse.text()
+        const html = await dashboardResponse.text();
         const match = html.match(
-          /<meta[^>]+name=["']anti-csrftoken-a2z["'][^>]*content=["']([^"']+)/i,
-        )
-        const csrfToken = match && match[1] ? match[1] : ''
+          /<meta[^>]+name=["']anti-csrftoken-a2z["'][^>]*content=["']([^"']+)/i
+        );
+        const csrfToken = match && match[1] ? match[1] : "";
 
         if (!csrfToken) {
-          sendResponse({ error: 'CSRF token not found in dashboard HTML' })
-          return
+          sendResponse({ error: "CSRF token not found in dashboard HTML" });
+          return;
         }
 
         const metadataResponse = await fetch(
-          'https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/customer-journey/metadata',
+          "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/customer-journey/metadata",
           {
-            method: 'POST',
-            credentials: 'include',
+            method: "POST",
+            credentials: "include",
             headers: {
-              accept: 'application/json',
-              'content-type': 'application/json',
-              'x-requested-with': 'XMLHttpRequest',
-              'anti-csrftoken-a2z': csrfToken,
+              accept: "application/json",
+              "content-type": "application/json",
+              "x-requested-with": "XMLHttpRequest",
+              "anti-csrftoken-a2z": csrfToken,
             },
             body: JSON.stringify({
-              selectedCountries: request.selectedCountries ?? ['us'],
+              selectedCountries: request.selectedCountries ?? ["us"],
             }),
-          },
-        )
+          }
+        );
 
         if (!metadataResponse.ok) {
-          throw new Error(`Metadata request failed with ${metadataResponse.status}`)
+          throw new Error(
+            `Metadata request failed with ${metadataResponse.status}`
+          );
         }
 
-        const customerJourneyData = await metadataResponse.json()
-        
+        const customerJourneyData = await metadataResponse.json();
+
         // Also fetch Query Performance metadata for ASINs
         const queryPerfResponse = await fetch(
-          'https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/query-performance/metadata',
+          "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/query-performance/metadata",
           {
-            method: 'POST',
-            credentials: 'include',
+            method: "POST",
+            credentials: "include",
             headers: {
-              accept: 'application/json',
-              'content-type': 'application/json',
-              'x-requested-with': 'XMLHttpRequest',
-              'anti-csrftoken-a2z': csrfToken,
+              accept: "application/json",
+              "content-type": "application/json",
+              "x-requested-with": "XMLHttpRequest",
+              "anti-csrftoken-a2z": csrfToken,
             },
             body: JSON.stringify({
-              selectedCountries: request.selectedCountries ?? ['us'],
+              selectedCountries: request.selectedCountries ?? ["us"],
             }),
-          },
-        )
+          }
+        );
 
-        let queryPerfData = null
+        let queryPerfData = null;
         if (queryPerfResponse.ok) {
-          queryPerfData = await queryPerfResponse.json()
+          queryPerfData = await queryPerfResponse.json();
         }
 
         // Merge both metadata sources
-        sendResponse({ 
+        sendResponse({
           data: customerJourneyData,
-          queryPerformanceData: queryPerfData 
-        })
+          queryPerformanceData: queryPerfData,
+        });
       } catch (error) {
-        sendResponse({ error: String(error) })
+        sendResponse({ error: String(error) });
       }
-    })()
+    })();
 
     // Return true to indicate we will respond asynchronously
-    return true
+    return true;
   }
 
-  if (request.type === 'DOWNLOAD_QUERY_PERFORMANCE_BRAND') {
-    ;(async () => {
+  if (request.type === "GET_TOP_SEARCH_TERMS_METADATA") {
+    (async () => {
       try {
         const dashboardResponse = await fetch(
-          'https://sellercentral.amazon.com/brand-analytics/dashboard/query-performance',
+          "https://sellercentral.amazon.com/brand-analytics/dashboard/top-search-terms",
           {
-            method: 'GET',
-            credentials: 'include',
-          },
-        )
+            method: "GET",
+            credentials: "include",
+          }
+        );
 
         if (!dashboardResponse.ok) {
-          throw new Error(`Dashboard request failed with ${dashboardResponse.status}`)
+          throw new Error(
+            `Dashboard request failed with ${dashboardResponse.status}`
+          );
         }
 
-        const html = await dashboardResponse.text()
+        const html = await dashboardResponse.text();
         const match = html.match(
-          /<meta[^>]+name=["']anti-csrftoken-a2z["'][^>]*content=["']([^"']+)/i,
-        )
-        const csrfToken = match && match[1] ? match[1] : ''
+          /<meta[^>]+name=["']anti-csrftoken-a2z["'][^>]*content=["']([^"']+)/i
+        );
+        const csrfToken = match && match[1] ? match[1] : "";
 
         if (!csrfToken) {
-          sendResponse({ error: 'CSRF token not found in dashboard HTML' })
-          return
+          sendResponse({ error: "CSRF token not found in dashboard HTML" });
+          return;
+        }
+
+        const metadataResponse = await fetch(
+          "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/top-search-terms/metadata",
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              accept: "application/json",
+              "content-type": "application/json",
+              "x-requested-with": "XMLHttpRequest",
+              "anti-csrftoken-a2z": csrfToken,
+            },
+            body: JSON.stringify({
+              selectedCountries: request.selectedCountries ?? ["us"],
+            }),
+          }
+        );
+
+        if (!metadataResponse.ok) {
+          throw new Error(
+            `Metadata request failed with ${metadataResponse.status}`
+          );
+        }
+
+        const data = await metadataResponse.json();
+        sendResponse({ data });
+      } catch (error) {
+        sendResponse({ error: String(error) });
+      }
+    })();
+
+    return true;
+  }
+
+  if (request.type === "GET_SEARCH_CATALOG_PERFORMANCE_METADATA") {
+    (async () => {
+      try {
+        const dashboardResponse = await fetch(
+          "https://sellercentral.amazon.com/brand-analytics/dashboard/brand-catalog-performance",
+          {
+            method: "GET",
+            credentials: "include",
+          }
+        );
+
+        if (!dashboardResponse.ok) {
+          throw new Error(
+            `Dashboard request failed with ${dashboardResponse.status}`
+          );
+        }
+
+        const html = await dashboardResponse.text();
+        const match = html.match(
+          /<meta[^>]+name=["']anti-csrftoken-a2z["'][^>]*content=["']([^"']+)/i
+        );
+        const csrfToken = match && match[1] ? match[1] : "";
+
+        if (!csrfToken) {
+          sendResponse({ error: "CSRF token not found in dashboard HTML" });
+          return;
+        }
+
+        const metadataResponse = await fetch(
+          "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/brand-catalog-performance/metadata",
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              accept: "application/json",
+              "content-type": "application/json",
+              "x-requested-with": "XMLHttpRequest",
+              "anti-csrftoken-a2z": csrfToken,
+            },
+            body: JSON.stringify({
+              selectedCountries: request.selectedCountries ?? ["us"],
+            }),
+          }
+        );
+
+        if (!metadataResponse.ok) {
+          throw new Error(
+            `Metadata request failed with ${metadataResponse.status}`
+          );
+        }
+
+        const data = await metadataResponse.json();
+        sendResponse({ data });
+      } catch (error) {
+        sendResponse({ error: String(error) });
+      }
+    })();
+
+    return true;
+  }
+
+  if (request.type === "DOWNLOAD_SEARCH_CATALOG_PERFORMANCE") {
+    (async () => {
+      try {
+        console.log(
+          "[Background] Starting Search Catalog Performance report fetch..."
+        );
+
+        // Use cached CSRF token
+        const csrfToken = await getCsrfToken();
+
+        const {
+          viewId,
+          reportId,
+          filterSelections,
+          selectedCountries = ["us"],
+        } = request;
+
+        if (!viewId || !reportId || !filterSelections) {
+          console.error("[Background] Missing required parameters");
+          sendResponse({ error: "Missing required parameters" });
+          return;
+        }
+
+        const reportsBody = {
+          viewId,
+          filterSelections,
+          selectedCountries,
+          reportId,
+        };
+
+        console.log(
+          "[Background] Fetching Search Catalog Performance report..."
+        );
+        const reportsResp = await fetch(
+          "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/brand-catalog-performance/reports",
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              accept: "application/json",
+              "content-type": "application/json",
+              "x-requested-with": "XMLHttpRequest",
+              "anti-csrftoken-a2z": csrfToken,
+            },
+            body: JSON.stringify(reportsBody),
+          }
+        );
+
+        if (!reportsResp.ok) {
+          const errorText = await reportsResp.text();
+          console.error(
+            "[Background] Reports request failed:",
+            reportsResp.status,
+            errorText
+          );
+          throw new Error(`Reports request failed with ${reportsResp.status}`);
+        }
+
+        const reportsData = await reportsResp.json();
+        const report = (reportsData.reportsV2 || []).find(
+          (r: any) => r.id === reportId
+        );
+
+        if (!report) {
+          console.error("[Background] No report data found in response");
+          sendResponse({ error: "No report data found" });
+          return;
+        }
+
+        console.log(
+          "[Background] Successfully fetched Search Catalog Performance data:",
+          { totalItems: report.totalItems, rows: report.rows?.length }
+        );
+        sendResponse({
+          status: "success",
+          totalItems: report.totalItems,
+          rows: report.rows || [],
+        });
+      } catch (error) {
+        console.error(
+          "[Background] Error in Search Catalog Performance handler:",
+          error
+        );
+        sendResponse({ error: String(error) });
+      }
+    })();
+
+    return true;
+  }
+
+  if (request.type === "DOWNLOAD_TOP_SEARCH_TERMS") {
+    (async () => {
+      try {
+        console.log("[Background] Starting Top Search Terms report fetch...");
+
+        // Use cached CSRF token
+        const csrfToken = await getCsrfToken();
+
+        const {
+          viewId,
+          reportId,
+          filterSelections,
+          selectedCountries = ["us"],
+        } = request;
+
+        if (!viewId || !reportId || !filterSelections) {
+          console.error("[Background] Missing required parameters");
+          sendResponse({ error: "Missing required parameters" });
+          return;
+        }
+
+        // Scrape all pages from the reports API
+        const allRows = [];
+        let pageNumber = 1;
+        let totalItems = null;
+        let pageSize = 100;
+        let done = false;
+
+        while (!done) {
+          const reportsBody = {
+            viewId,
+            filterSelections,
+            reportOperations: [
+              {
+                reportId,
+                reportType: "TABLE",
+                pageNumber,
+                pageSize,
+                sortByColumnId: "st-search-frequency",
+                ascending: true,
+              },
+            ],
+            selectedCountries,
+            reportId,
+          };
+
+          console.log(
+            `[Background] Fetching Top Search Terms page ${pageNumber}...`
+          );
+          const reportsResp = await fetch(
+            "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/top-search-terms/reports",
+            {
+              method: "POST",
+              credentials: "include",
+              headers: {
+                accept: "application/json",
+                "content-type": "application/json",
+                "x-requested-with": "XMLHttpRequest",
+                "anti-csrftoken-a2z": csrfToken,
+              },
+              body: JSON.stringify(reportsBody),
+            }
+          );
+
+          if (!reportsResp.ok) {
+            const errorText = await reportsResp.text();
+            console.error(
+              "[Background] Reports request failed:",
+              reportsResp.status,
+              errorText
+            );
+            throw new Error(
+              `Reports request failed with ${reportsResp.status}`
+            );
+          }
+
+          const reportsData = await reportsResp.json();
+          const report = (reportsData.reportsV2 || []).find(
+            (r: any) => r.id === reportId
+          );
+
+          if (!report) {
+            console.error("[Background] No report data found in response");
+            sendResponse({ error: "No report data found" });
+            return;
+          }
+
+          if (totalItems === null) {
+            totalItems = report.totalItems;
+            pageSize = report.pageSize;
+            const totalPages = Math.ceil(totalItems / pageSize);
+            console.log(
+              `[Background] Total items: ${totalItems}, Page size: ${pageSize}, Total pages: ${totalPages}`
+            );
+          }
+
+          allRows.push(...(report.rows || []));
+          console.log(
+            `[Background] Fetched ${allRows.length}/${totalItems} rows (page ${pageNumber})`
+          );
+
+          if (allRows.length >= totalItems) {
+            done = true;
+          } else {
+            pageNumber++;
+          }
+        }
+
+        console.log(
+          "[Background] Successfully fetched all Top Search Terms data:",
+          { totalItems, rows: allRows.length }
+        );
+        sendResponse({
+          status: "success",
+          totalItems,
+          rows: allRows,
+        });
+      } catch (error) {
+        console.error("[Background] Error in Top Search Terms handler:", error);
+        sendResponse({ error: String(error) });
+      }
+    })();
+
+    return true;
+  }
+
+  if (request.type === "DOWNLOAD_QUERY_PERFORMANCE_BRAND") {
+    (async () => {
+      try {
+        const dashboardResponse = await fetch(
+          "https://sellercentral.amazon.com/brand-analytics/dashboard/query-performance",
+          {
+            method: "GET",
+            credentials: "include",
+          }
+        );
+
+        if (!dashboardResponse.ok) {
+          throw new Error(
+            `Dashboard request failed with ${dashboardResponse.status}`
+          );
+        }
+
+        const html = await dashboardResponse.text();
+        const match = html.match(
+          /<meta[^>]+name=["']anti-csrftoken-a2z["'][^>]*content=["']([^"']+)/i
+        );
+        const csrfToken = match && match[1] ? match[1] : "";
+
+        if (!csrfToken) {
+          sendResponse({ error: "CSRF token not found in dashboard HTML" });
+          return;
         }
 
         const {
           brand,
           reportingRange,
           period,
-          selectedCountries = ['us'],
-        } = request
+          selectedCountries = ["us"],
+        } = request;
 
         if (!brand || !reportingRange || !period) {
-          sendResponse({ error: 'Missing brand/reportingRange/period selection' })
-          return
+          sendResponse({
+            error: "Missing brand/reportingRange/period selection",
+          });
+          return;
         }
 
-        const valueType = reportingRange.value
-        let periodId = `${valueType}-value`
+        const valueType = reportingRange.value;
+        let periodId = `${valueType}-value`;
 
-        if (valueType === 'weekly') {
-          periodId = 'weekly-week'
-        } else if (valueType === 'monthly') {
-          periodId = 'monthly-month'
-        } else if (valueType === 'quarterly') {
-          periodId = 'quarterly-quarter'
+        if (valueType === "weekly") {
+          periodId = "weekly-week";
+        } else if (valueType === "monthly") {
+          periodId = "monthly-month";
+        } else if (valueType === "quarterly") {
+          periodId = "quarterly-quarter";
         }
 
         // Build the filterSelections for the reports API
         const filterSelections = [
-          { id: 'brand', value: brand.value, valueType: null },
-          { id: 'reporting-range', value: reportingRange.value, valueType: null },
+          { id: "brand", value: brand.value, valueType: null },
+          {
+            id: "reporting-range",
+            value: reportingRange.value,
+            valueType: null,
+          },
           { id: periodId, value: period.value, valueType },
         ];
 
@@ -197,43 +555,47 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
         while (!done) {
           const reportsBody = {
-            viewId: 'query-performance-brands-view',
+            viewId: "query-performance-brands-view",
             filterSelections,
             reportOperations: [
               {
-                reportId: 'query-performance-brand-report-table',
-                reportType: 'TABLE',
+                reportId: "query-performance-brand-report-table",
+                reportType: "TABLE",
                 pageNumber,
                 pageSize,
-                sortByColumnId: 'qp-query-rank',
+                sortByColumnId: "qp-query-rank",
                 ascending: true,
               },
             ],
             selectedCountries,
-            reportId: 'query-performance-brand-report-table',
+            reportId: "query-performance-brand-report-table",
           };
 
           const reportsResp = await fetch(
-            'https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/query-performance/reports',
+            "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/query-performance/reports",
             {
-              method: 'POST',
-              credentials: 'include',
+              method: "POST",
+              credentials: "include",
               headers: {
-                accept: 'application/json',
-                'content-type': 'application/json',
-                'x-requested-with': 'XMLHttpRequest',
-                'anti-csrftoken-a2z': csrfToken,
+                accept: "application/json",
+                "content-type": "application/json",
+                "x-requested-with": "XMLHttpRequest",
+                "anti-csrftoken-a2z": csrfToken,
               },
               body: JSON.stringify(reportsBody),
-            },
+            }
           );
           if (!reportsResp.ok) {
-            throw new Error(`Reports request failed with ${reportsResp.status}`);
+            throw new Error(
+              `Reports request failed with ${reportsResp.status}`
+            );
           }
           const reportsData = await reportsResp.json();
-          const report = (reportsData.reportsV2 || []).find((r: any) => r.id === 'query-performance-brand-report-table');
+          const report = (reportsData.reportsV2 || []).find(
+            (r: any) => r.id === "query-performance-brand-report-table"
+          );
           if (!report) {
-            sendResponse({ error: 'No report data found' });
+            sendResponse({ error: "No report data found" });
             return;
           }
           if (totalItems === null) {
@@ -247,47 +609,50 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
             pageNumber++;
           }
         }
-        console.log('[Brand Analytics] Final aggregated data:', { totalItems, rows: allRows });
+        console.log("[Brand Analytics] Final aggregated data:", {
+          totalItems,
+          rows: allRows,
+        });
         sendResponse({
-          status: 'success',
+          status: "success",
           totalItems,
           rows: allRows,
         });
       } catch (error) {
-        sendResponse({ error: String(error) })
+        sendResponse({ error: String(error) });
       }
-    })()
+    })();
 
-    return true
+    return true;
   }
 
-  if (request.type === 'DOWNLOAD_QUERY_PERFORMANCE_ASIN') {
-    ;(async () => {
+  if (request.type === "DOWNLOAD_QUERY_PERFORMANCE_ASIN") {
+    (async () => {
       try {
-        console.log('[Background] Starting ASIN report fetch...')
-        
+        console.log("[Background] Starting ASIN report fetch...");
+
         // Use cached CSRF token
-        const csrfToken = await getCsrfToken()
+        const csrfToken = await getCsrfToken();
 
         const {
           viewId,
           reportId,
           filterSelections,
-          selectedCountries = ['us'],
-        } = request
+          selectedCountries = ["us"],
+        } = request;
 
         if (!viewId || !reportId || !filterSelections) {
-          console.error('[Background] Missing required parameters')
-          sendResponse({ error: 'Missing required parameters' })
-          return
+          console.error("[Background] Missing required parameters");
+          sendResponse({ error: "Missing required parameters" });
+          return;
         }
 
         // Scrape all pages from the reports API
-        const allRows = []
-        let pageNumber = 1
-        let totalItems = null
-        let pageSize = 100
-        let done = false
+        const allRows = [];
+        let pageNumber = 1;
+        let totalItems = null;
+        let pageSize = 100;
+        let done = false;
 
         while (!done) {
           const reportsBody = {
@@ -296,76 +661,94 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
             reportOperations: [
               {
                 reportId,
-                reportType: 'TABLE',
+                reportType: "TABLE",
                 pageNumber,
                 pageSize,
-                sortByColumnId: 'qp-asin-query-rank',
+                sortByColumnId: "qp-asin-query-rank",
                 ascending: true,
               },
             ],
             selectedCountries,
             reportId,
-          }
+          };
 
-          console.log(`[Background] Fetching ASIN report page ${pageNumber}...`)
+          console.log(
+            `[Background] Fetching ASIN report page ${pageNumber}...`
+          );
           const reportsResp = await fetch(
-            'https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/query-performance/reports',
+            "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/query-performance/reports",
             {
-              method: 'POST',
-              credentials: 'include',
+              method: "POST",
+              credentials: "include",
               headers: {
-                accept: 'application/json',
-                'content-type': 'application/json',
-                'x-requested-with': 'XMLHttpRequest',
-                'anti-csrftoken-a2z': csrfToken,
+                accept: "application/json",
+                "content-type": "application/json",
+                "x-requested-with": "XMLHttpRequest",
+                "anti-csrftoken-a2z": csrfToken,
               },
               body: JSON.stringify(reportsBody),
-            },
-          )
+            }
+          );
 
           if (!reportsResp.ok) {
-            const errorText = await reportsResp.text()
-            console.error('[Background] Reports request failed:', reportsResp.status, errorText)
-            throw new Error(`Reports request failed with ${reportsResp.status}`)
+            const errorText = await reportsResp.text();
+            console.error(
+              "[Background] Reports request failed:",
+              reportsResp.status,
+              errorText
+            );
+            throw new Error(
+              `Reports request failed with ${reportsResp.status}`
+            );
           }
 
-          const reportsData = await reportsResp.json()
-          const report = (reportsData.reportsV2 || []).find((r: any) => r.id === reportId)
-          
+          const reportsData = await reportsResp.json();
+          const report = (reportsData.reportsV2 || []).find(
+            (r: any) => r.id === reportId
+          );
+
           if (!report) {
-            console.error('[Background] No report data found in response')
-            sendResponse({ error: 'No report data found' })
-            return
+            console.error("[Background] No report data found in response");
+            sendResponse({ error: "No report data found" });
+            return;
           }
 
           if (totalItems === null) {
-            totalItems = report.totalItems
-            pageSize = report.pageSize
-            console.log(`[Background] Total items: ${totalItems}, Page size: ${pageSize}`)
+            totalItems = report.totalItems;
+            pageSize = report.pageSize;
+            const totalPages = Math.ceil(totalItems / pageSize);
+            console.log(
+              `[Background] Total items: ${totalItems}, Page size: ${pageSize}, Total pages: ${totalPages}`
+            );
           }
 
-          allRows.push(...(report.rows || []))
-          console.log(`[Background] Fetched ${allRows.length}/${totalItems} rows`)
+          allRows.push(...(report.rows || []));
+          console.log(
+            `[Background] Fetched ${allRows.length}/${totalItems} rows (page ${pageNumber})`
+          );
 
           if (allRows.length >= totalItems) {
-            done = true
+            done = true;
           } else {
-            pageNumber++
+            pageNumber++;
           }
         }
 
-        console.log('[Background] Successfully fetched all ASIN report data:', { totalItems, rows: allRows.length })
-        sendResponse({ 
-          status: 'success',
+        console.log("[Background] Successfully fetched all ASIN report data:", {
           totalItems,
-          rows: allRows 
-        })
+          rows: allRows.length,
+        });
+        sendResponse({
+          status: "success",
+          totalItems,
+          rows: allRows,
+        });
       } catch (error) {
-        console.error('[Background] Error in ASIN report handler:', error)
-        sendResponse({ error: String(error) })
+        console.error("[Background] Error in ASIN report handler:", error);
+        sendResponse({ error: String(error) });
       }
-    })()
+    })();
 
-    return true
+    return true;
   }
-})
+});

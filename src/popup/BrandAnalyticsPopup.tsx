@@ -16,6 +16,8 @@ import {
   BulbOutlined,
   ArrowRightOutlined,
 } from "@ant-design/icons";
+import { ReviewGeoDropdown } from "../components/ReviewGeoDropdown";
+import { GeoMapsModel } from "../constants/geo-constants";
 
 import "./Popup.css";
 
@@ -36,6 +38,7 @@ const BrandAnalyticsPopup: FC<BrandAnalyticsPopupProps> = ({
   onOpenCouponReport,
 }) => {
   const [loadingMetadata, setLoadingMetadata] = useState(false);
+  const [selectedGeo, setSelectedGeo] = useState<GeoMapsModel>();
 
   const handleFetchMetadata = () => {
     setLoadingMetadata(true);
@@ -85,25 +88,18 @@ const BrandAnalyticsPopup: FC<BrandAnalyticsPopupProps> = ({
   return (
     <Layout className="ba-layout">
       <Header className="ba-header">
-        <Row justify="space-between" align="middle">
-          <Space size="middle">
+        <Row justify="end" align="middle">
+          {/* <Space size="middle">
             <Button type="text" icon={<MenuOutlined />} />
             <Button type="text" icon={<SearchOutlined />} />
-          </Space>
+          </Space> */}
 
-          <Space size="middle" align="center">
-            <Button
-              className="ba-lang-btn"
-              icon={<GlobalOutlined />}
-              shape="round"
-            >
-              <span className="ba-lang-code">US</span>
-            </Button>
-            <Button type="text" icon={<BulbOutlined />} />
-            <Avatar size={28} className="ba-avatar">
-              SA
-            </Avatar>
-          </Space>
+          <ReviewGeoDropdown
+            selectedGeo={(geoDetails: GeoMapsModel) => {
+              setSelectedGeo(geoDetails);
+              console.log("Selected geo:", geoDetails);
+            }}
+          />
         </Row>
       </Header>
 
@@ -112,19 +108,6 @@ const BrandAnalyticsPopup: FC<BrandAnalyticsPopupProps> = ({
           <Title level={4} className="ba-title">
             Brand Analytics Report
           </Title>
-          <Space>
-            <Button
-              size="small"
-              type="default"
-              loading={loadingMetadata}
-              onClick={handleFetchMetadata}
-            >
-              Load metadata
-            </Button>
-            <Link className="ba-tutorial" href="#">
-              Tutorial video ↗
-            </Link>
-          </Space>
         </Row>
 
         <Row gutter={[12, 12]} className="ba-card-grid">
