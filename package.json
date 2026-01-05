@@ -1,17 +1,12 @@
 {
-  "name": "chrome-extension-react-ts",
-  "displayName": "React.ts Chrome Extension",
-  "version": "0.0.0",
+  "name": "sellerapp-utility-extension",
+  "displayName": "SellerApp Utility Extension",
+  "version": "0.0.1",
   "author": "",
-  "description": "",
+  "description": "Enhance your Amazon Seller Central experience with powerful productivity tools.",
   "type": "module",
   "license": "MIT",
-  "keywords": [
-    "chrome-extension",
-    "react",
-    "vite",
-    "create-chrome-ext"
-  ],
+  "keywords": [],
   "engines": {
     "node": ">=14.18.0"
   },
