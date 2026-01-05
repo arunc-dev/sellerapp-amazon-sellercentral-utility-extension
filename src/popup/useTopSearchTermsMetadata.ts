@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export type CategoryOption = {
   label: string;
@@ -36,7 +36,9 @@ export type TopSearchTermsMetadataState = {
 };
 
 export const useTopSearchTermsMetadata = (
-  selectedCountries: string[] = ["us"]
+  selectedCountries: string[] = ["us"],
+  baseDomain: string = "sellercentral.amazon.com",
+  skip: boolean = false
 ): TopSearchTermsMetadataState => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,9 +50,27 @@ export const useTopSearchTermsMetadata = (
   const [selectedRangeChild, setSelectedRangeChild] = useState<
     string | undefined
   >();
+  const lastFetchedDomain = useRef<string | null>(null);
+  const isFetchingRef = useRef(false);
 
   useEffect(() => {
-    console.log('[TopSearchTerms] Fetching metadata...');
+    // Skip fetching if skip parameter is true
+    if (skip) {
+      return;
+    }
+
+    // Prevent fetching if already fetching
+    if (isFetchingRef.current) {
+      return;
+    }
+
+    // Prevent fetching the same domain multiple times
+    if (lastFetchedDomain.current === baseDomain) {
+      return;
+    }
+
+    lastFetchedDomain.current = baseDomain;
+    isFetchingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -58,8 +78,10 @@ export const useTopSearchTermsMetadata = (
       {
         type: "GET_TOP_SEARCH_TERMS_METADATA",
         selectedCountries,
+        baseDomain,
       },
       (response) => {
+        isFetchingRef.current = false;
         setLoading(false);
 
         if (chrome.runtime.lastError) {
@@ -80,7 +102,9 @@ export const useTopSearchTermsMetadata = (
         const raw = response.data;
         const metadata = raw?.metadata;
         const views = metadata?.viewsRoot?.views as any[] | undefined;
-        const defaultView = views?.find((v: any) => v.id === "top-search-terms-default-view");
+        const defaultView = views?.find(
+          (v: any) => v.id === "top-search-terms-default-view"
+        );
         const filters = defaultView?.filters as any[] | undefined;
 
         if (!Array.isArray(filters)) {
@@ -88,7 +112,9 @@ export const useTopSearchTermsMetadata = (
           return;
         }
 
-        const categoryFilter = filters.find((f) => f.id === "category-dropdown");
+        const categoryFilter = filters.find(
+          (f) => f.id === "category-dropdown"
+        );
         const reportingFilter = filters.find((f) => f.id === "reporting-range");
 
         const categories: CategoryOption[] = (categoryFilter?.values ?? []).map(
@@ -124,19 +150,21 @@ export const useTopSearchTermsMetadata = (
         const defaultRange = ranges.find((r) => r.isDefault);
         if (defaultRange) {
           setSelectedRange(defaultRange.value);
-          const defaultChild = defaultRange.childOptions?.find((c) => c.isDefault);
+          const defaultChild = defaultRange.childOptions?.find(
+            (c) => c.isDefault
+          );
           if (defaultChild) {
             setSelectedRangeChild(defaultChild.value);
           }
         }
       }
     );
-  }, []); // Only fetch once on mount - selectedCountries defaults to ["us"]
+  }, [baseDomain]); // selectedCountries is always ["us"] so we don't need it in deps
 
   const handleSelectRange = (value: string) => {
     setSelectedRange(value);
     setSelectedRangeChild(undefined);
-    
+
     // Try to auto-select first child if available
     const range = reportingRangeOptions.find((r) => r.value === value);
     if (range?.childOptions?.length) {

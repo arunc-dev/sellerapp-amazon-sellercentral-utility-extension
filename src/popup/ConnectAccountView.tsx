@@ -1,23 +1,52 @@
-import { FC } from "react";
+import { FC, useState, useEffect } from "react";
 import { Layout, Row, Col, Card, Typography, Button, Space, Alert } from "antd";
 import {
   LinkOutlined,
   ArrowRightOutlined,
   ExportOutlined,
 } from "@ant-design/icons";
-import { ReviewGeoDropdown } from "../components/ReviewGeoDropdown";
-import { GeoMapsModel } from "../constants/geo-constants";
+import { GeoHeader } from "../components/GeoHeader";
+import { AppFooter } from "../components/AppFooter";
+import { GeoMapsModel, geoMaps } from "../constants/geo-constants";
+import { get } from "../helpers/Cache";
 
 import "./Popup.css";
 
-const { Header, Content, Footer } = Layout;
+const { Content } = Layout;
 const { Title, Text, Link } = Typography;
 
 type ConnectAccountViewProps = {
   onConnect?: () => void;
+  onGeoChange?: (geoDetails: GeoMapsModel) => void;
 };
 
-const ConnectAccountView: FC<ConnectAccountViewProps> = ({ onConnect }) => {
+const ConnectAccountView: FC<ConnectAccountViewProps> = ({
+  onConnect,
+  onGeoChange,
+}) => {
+  const [selectedGeo, setSelectedGeo] = useState<GeoMapsModel>({
+    baseDomain: "sellercentral.amazon.com",
+    marketPlaceId: "ATVPDKIKX0DER",
+    marketPlace: "US",
+    marketplaceDisplay: "AMAZON.COM",
+    tail: ".com",
+    countryCode: "us",
+  });
+
+  // Load saved geo from cache on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const savedGeoKey = (await get("selectedGeo")) as string;
+        if (savedGeoKey && geoMaps[savedGeoKey]) {
+          setSelectedGeo(geoMaps[savedGeoKey]);
+        }
+      } catch (error) {
+        console.error("Error loading saved geo:", error);
+      }
+    })();
+  }, []);
+
   const cards = [
     {
       key: "asqp",
@@ -38,34 +67,23 @@ const ConnectAccountView: FC<ConnectAccountViewProps> = ({ onConnect }) => {
   ];
 
   const handleConnect = () => {
-    // TODO: Implement actual authentication logic
-    if (onConnect) {
-      onConnect();
-    }
+    // Open seller central login page for the selected country
+    const sellerCentralUrl = `https://${selectedGeo.baseDomain}/`;
+    chrome.tabs.create({ url: sellerCentralUrl });
   };
 
   return (
     <Layout className="ba-layout">
-      <Header className="ba-header">
-        <Row justify="end" align="middle">
-          <ReviewGeoDropdown
-            selectedGeo={(geoDetails: GeoMapsModel) => {
-              console.log("Selected geo:", geoDetails);
-            }}
-          />
-        </Row>
-      </Header>
+      <GeoHeader
+        onGeoChange={(geoDetails: GeoMapsModel) => {
+          setSelectedGeo(geoDetails);
+          if (onGeoChange) {
+            onGeoChange(geoDetails);
+          }
+        }}
+      />
 
       <Content className="ba-content">
-        <Row justify="space-between" align="middle" className="ba-title-row">
-          <Title level={4} className="ba-title">
-            Brand Analytics Report
-          </Title>
-          <Link href="#" className="ba-tutorial-link">
-            Tutorial video <ExportOutlined />
-          </Link>
-        </Row>
-
         <Alert
           message={
             <Space direction="vertical" size={12} style={{ width: "100%" }}>
@@ -89,7 +107,7 @@ const ConnectAccountView: FC<ConnectAccountViewProps> = ({ onConnect }) => {
                 onClick={handleConnect}
                 block
               >
-                Connect Account
+                Login to Account
               </Button>
             </Space>
           }
@@ -131,11 +149,7 @@ const ConnectAccountView: FC<ConnectAccountViewProps> = ({ onConnect }) => {
         </Row>
       </Content>
 
-      <Footer className="ba-footer">
-        <Text type="secondary" className="ba-powered-by">
-          Powered by <span className="ba-brand">sellerapp</span>
-        </Text>
-      </Footer>
+      <AppFooter />
     </Layout>
   );
 };

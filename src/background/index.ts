@@ -4,7 +4,9 @@ console.log("background is running");
 let csrfTokenCache: { token: string; timestamp: number } | null = null;
 const CSRF_TOKEN_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-async function getCsrfToken(): Promise<string> {
+async function getCsrfToken(
+  baseDomain: string = "sellercentral.amazon.com"
+): Promise<string> {
   // Return cached token if still valid
   if (
     csrfTokenCache &&
@@ -16,7 +18,7 @@ async function getCsrfToken(): Promise<string> {
 
   console.log("[Background] Fetching new CSRF token");
   const dashboardResponse = await fetch(
-    "https://sellercentral.amazon.com/brand-analytics/dashboard/query-performance",
+    `https://${baseDomain}/brand-analytics/dashboard/query-performance`,
     {
       method: "GET",
       credentials: "include",
@@ -56,9 +58,12 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
   if (request.type === "GET_CUSTOMER_JOURNEY_METADATA") {
     (async () => {
+      console.log(request, "fajsfbh");
+
       try {
+        const baseDomain = request.baseDomain || "sellercentral.amazon.com";
         const dashboardResponse = await fetch(
-          "https://sellercentral.amazon.com/brand-analytics/dashboard/customer-journey",
+          `https://${baseDomain}/brand-analytics/dashboard/customer-journey`,
           {
             method: "GET",
             credentials: "include",
@@ -83,7 +88,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         }
 
         const metadataResponse = await fetch(
-          "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/customer-journey/metadata",
+          `https://${baseDomain}/api/brand-analytics/v1/dashboard/customer-journey/metadata`,
           {
             method: "POST",
             credentials: "include",
@@ -94,7 +99,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
               "anti-csrftoken-a2z": csrfToken,
             },
             body: JSON.stringify({
-              selectedCountries: request.selectedCountries ?? ["us"],
+              selectedCountries: ["us"],
             }),
           }
         );
@@ -109,7 +114,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
         // Also fetch Query Performance metadata for ASINs
         const queryPerfResponse = await fetch(
-          "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/query-performance/metadata",
+          `https://${baseDomain}/api/brand-analytics/v1/dashboard/query-performance/metadata`,
           {
             method: "POST",
             credentials: "include",
@@ -147,8 +152,9 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.type === "GET_TOP_SEARCH_TERMS_METADATA") {
     (async () => {
       try {
+        const baseDomain = request.baseDomain || "sellercentral.amazon.com";
         const dashboardResponse = await fetch(
-          "https://sellercentral.amazon.com/brand-analytics/dashboard/top-search-terms",
+          `https://${baseDomain}/brand-analytics/dashboard/top-search-terms`,
           {
             method: "GET",
             credentials: "include",
@@ -173,7 +179,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         }
 
         const metadataResponse = await fetch(
-          "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/top-search-terms/metadata",
+          `https://${baseDomain}/api/brand-analytics/v1/dashboard/top-search-terms/metadata`,
           {
             method: "POST",
             credentials: "include",
@@ -208,8 +214,9 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.type === "GET_SEARCH_CATALOG_PERFORMANCE_METADATA") {
     (async () => {
       try {
+        const baseDomain = request.baseDomain || "sellercentral.amazon.com";
         const dashboardResponse = await fetch(
-          "https://sellercentral.amazon.com/brand-analytics/dashboard/brand-catalog-performance",
+          `https://${baseDomain}/brand-analytics/dashboard/brand-catalog-performance`,
           {
             method: "GET",
             credentials: "include",
@@ -234,7 +241,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         }
 
         const metadataResponse = await fetch(
-          "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/brand-catalog-performance/metadata",
+          `https://${baseDomain}/api/brand-analytics/v1/dashboard/brand-catalog-performance/metadata`,
           {
             method: "POST",
             credentials: "include",
@@ -273,8 +280,9 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
           "[Background] Starting Search Catalog Performance report fetch..."
         );
 
+        const baseDomain = request.baseDomain || "sellercentral.amazon.com";
         // Use cached CSRF token
-        const csrfToken = await getCsrfToken();
+        const csrfToken = await getCsrfToken(baseDomain);
 
         const {
           viewId,
@@ -300,7 +308,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
           "[Background] Fetching Search Catalog Performance report..."
         );
         const reportsResp = await fetch(
-          "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/brand-catalog-performance/reports",
+          `https://${baseDomain}/api/brand-analytics/v1/dashboard/brand-catalog-performance/reports`,
           {
             method: "POST",
             credentials: "include",
@@ -361,8 +369,9 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       try {
         console.log("[Background] Starting Top Search Terms report fetch...");
 
+        const baseDomain = request.baseDomain || "sellercentral.amazon.com";
         // Use cached CSRF token
-        const csrfToken = await getCsrfToken();
+        const csrfToken = await getCsrfToken(baseDomain);
 
         const {
           viewId,
@@ -406,7 +415,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
             `[Background] Fetching Top Search Terms page ${pageNumber}...`
           );
           const reportsResp = await fetch(
-            "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/top-search-terms/reports",
+            `https://${baseDomain}/api/brand-analytics/v1/dashboard/top-search-terms/reports`,
             {
               method: "POST",
               credentials: "include",
@@ -485,8 +494,9 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.type === "DOWNLOAD_QUERY_PERFORMANCE_BRAND") {
     (async () => {
       try {
+        const baseDomain = request.baseDomain || "sellercentral.amazon.com";
         const dashboardResponse = await fetch(
-          "https://sellercentral.amazon.com/brand-analytics/dashboard/query-performance",
+          `https://${baseDomain}/brand-analytics/dashboard/query-performance`,
           {
             method: "GET",
             credentials: "include",
@@ -572,7 +582,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
           };
 
           const reportsResp = await fetch(
-            "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/query-performance/reports",
+            `https://${baseDomain}/api/brand-analytics/v1/dashboard/query-performance/reports`,
             {
               method: "POST",
               credentials: "include",
@@ -631,8 +641,9 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       try {
         console.log("[Background] Starting ASIN report fetch...");
 
+        const baseDomain = request.baseDomain || "sellercentral.amazon.com";
         // Use cached CSRF token
-        const csrfToken = await getCsrfToken();
+        const csrfToken = await getCsrfToken(baseDomain);
 
         const {
           viewId,
@@ -676,7 +687,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
             `[Background] Fetching ASIN report page ${pageNumber}...`
           );
           const reportsResp = await fetch(
-            "https://sellercentral.amazon.com/api/brand-analytics/v1/dashboard/query-performance/reports",
+            `https://${baseDomain}/api/brand-analytics/v1/dashboard/query-performance/reports`,
             {
               method: "POST",
               credentials: "include",

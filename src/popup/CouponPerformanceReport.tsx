@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useState, useEffect, useMemo, useCallback } from "react";
 import {
   Layout,
   Row,
@@ -20,20 +20,65 @@ import {
 
 import "./Popup.css";
 import { useCustomerJourneyMetadata } from "./useCustomerJourneyMetadata";
-import { ReviewGeoDropdown } from "../components/ReviewGeoDropdown";
-import { GeoMapsModel } from "../constants/geo-constants";
+import { GeoHeader } from "../components/GeoHeader";
+import { AppFooter } from "../components/AppFooter";
+import { GeoMapsModel, geoMaps } from "../constants/geo-constants";
+import { get } from "../helpers/Cache";
 
-const { Header, Content, Footer } = Layout;
+// Constant to prevent new array creation on every render
+const SELECTED_COUNTRIES = ["us"];
+
+const { Content } = Layout;
 const { Title, Text, Link } = Typography;
 const { TextArea } = Input;
 
 type CouponPerformanceReportProps = {
   onBack?: () => void;
+  onGeoChange?: (geoDetails: GeoMapsModel) => void;
 };
 
 const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
   onBack,
+  onGeoChange,
 }) => {
+  const [selectedGeo, setSelectedGeo] = useState<GeoMapsModel | null>(null);
+  const [geoInitialized, setGeoInitialized] = useState(false);
+
+  // Load initial geo from cache on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const savedGeoKey = (await get("selectedGeo")) as string;
+        if (savedGeoKey && geoMaps[savedGeoKey]) {
+          setSelectedGeo(geoMaps[savedGeoKey]);
+        } else {
+          setSelectedGeo(geoMaps.AMAZON_US);
+        }
+      } catch {
+        setSelectedGeo(geoMaps.AMAZON_US);
+      } finally {
+        setGeoInitialized(true);
+      }
+    })();
+  }, []);
+
+  // Use useMemo to ensure baseDomain is stable across renders
+  const baseDomain = useMemo(
+    () => selectedGeo?.baseDomain || "sellercentral.amazon.com",
+    [selectedGeo?.baseDomain]
+  );
+
+  // Memoize the geo change handler
+  const handleGeoChange = useCallback(
+    (geoDetails: GeoMapsModel) => {
+      setSelectedGeo(geoDetails);
+      if (onGeoChange) {
+        onGeoChange(geoDetails);
+      }
+    },
+    [onGeoChange]
+  );
+
   const {
     loading,
     reportingRangeOptions,
@@ -43,18 +88,29 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
     handleSelectRange,
     childLabel,
     childOptions,
-  } = useCustomerJourneyMetadata();
+  } = useCustomerJourneyMetadata(
+    SELECTED_COUNTRIES,
+    baseDomain,
+    !geoInitialized
+  );
+
+  // Show loading state while geo is being initialized
+  if (!geoInitialized) {
+    return (
+      <Layout className="ba-layout">
+        <Content
+          className="ba-content"
+          style={{ textAlign: "center", padding: "50px" }}
+        >
+          Loading...
+        </Content>
+      </Layout>
+    );
+  }
+
   return (
     <Layout className="ba-layout">
-      <Header className="ba-header">
-        <Row justify="end" align="middle">
-          <ReviewGeoDropdown
-            selectedGeo={(geoDetails: GeoMapsModel) => {
-              console.log("Selected geo:", geoDetails);
-            }}
-          />
-        </Row>
-      </Header>
+      <GeoHeader skipInitialCallback={true} onGeoChange={handleGeoChange} />
 
       <Content className="ba-content">
         <Row justify="space-between" align="middle" className="ba-title-row">
@@ -65,7 +121,7 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
               className="ba-back-btn"
               onClick={onBack}
             />
-            <Title level={4} className="ba-title">
+            <Title level={5} className="ba-title" style={{ margin: 1 }}>
               Coupon Performance Report
             </Title>
           </Space>
@@ -152,17 +208,13 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
                 console.log("Fetch Coupon Performance report");
               }}
             >
-              Fetch
+              Get Data
             </Button>
           </Col>
         </Row>
       </Content>
 
-      <Footer className="ba-footer">
-        <Text type="secondary" className="ba-powered-by">
-          Powered by <span className="ba-brand">sellerapp</span>
-        </Text>
-      </Footer>
+      <AppFooter />
     </Layout>
   );
 };

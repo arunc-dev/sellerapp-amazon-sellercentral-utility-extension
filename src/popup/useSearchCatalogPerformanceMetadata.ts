@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export type BrandOption = {
   label: string;
@@ -43,7 +43,9 @@ export type SearchCatalogPerformanceMetadataState = {
 };
 
 export const useSearchCatalogPerformanceMetadata = (
-  selectedCountries: string[] = ["us"]
+  selectedCountries: string[] = ["us"],
+  baseDomain: string = "sellercentral.amazon.com",
+  skip: boolean = false
 ): SearchCatalogPerformanceMetadataState => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,9 +57,27 @@ export const useSearchCatalogPerformanceMetadata = (
   const [selectedRangeChild, setSelectedRangeChild] = useState<
     string | undefined
   >();
+  const lastFetchedDomain = useRef<string | null>(null);
+  const isFetchingRef = useRef(false);
 
   useEffect(() => {
-    console.log("[SearchCatalogPerformance] Fetching metadata...");
+    // Skip fetching if skip parameter is true
+    if (skip) {
+      return;
+    }
+
+    // Prevent fetching if already fetching
+    if (isFetchingRef.current) {
+      return;
+    }
+
+    // Prevent fetching the same domain multiple times
+    if (lastFetchedDomain.current === baseDomain) {
+      return;
+    }
+
+    lastFetchedDomain.current = baseDomain;
+    isFetchingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -65,8 +85,10 @@ export const useSearchCatalogPerformanceMetadata = (
       {
         type: "GET_SEARCH_CATALOG_PERFORMANCE_METADATA",
         selectedCountries,
+        baseDomain,
       },
       (response) => {
+        isFetchingRef.current = false;
         setLoading(false);
 
         if (chrome.runtime.lastError) {
@@ -154,7 +176,7 @@ export const useSearchCatalogPerformanceMetadata = (
         }
       }
     );
-  }, []); // Only fetch once on mount - selectedCountries defaults to ["us"]
+  }, [baseDomain]); // selectedCountries is always ["us"] so we don't need it in deps
 
   const handleSelectRange = (value: string) => {
     setSelectedRange(value);

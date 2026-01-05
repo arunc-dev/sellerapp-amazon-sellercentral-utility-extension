@@ -187,7 +187,7 @@ export function exportBrandAnalyticsCSV(
     URL.revokeObjectURL(url);
   }, 0);
 }
-import { FC, useState } from "react";
+import { FC, useState, useEffect, useMemo, useCallback } from "react";
 import {
   Layout,
   Row,
@@ -210,22 +210,31 @@ import {
 
 import "./Popup.css";
 import { useCustomerJourneyMetadata } from "./useCustomerJourneyMetadata";
-import { ReviewGeoDropdown } from "../components/ReviewGeoDropdown";
-import { GeoMapsModel } from "../constants/geo-constants";
+import { GeoHeader } from "../components/GeoHeader";
+import { AppFooter } from "../components/AppFooter";
+import { GeoMapsModel, geoMaps } from "../constants/geo-constants";
+import { get } from "../helpers/Cache";
 
-const { Header, Content, Footer } = Layout;
+const { Header, Content } = Layout;
 const { Title, Text, Link } = Typography;
 const { TextArea } = Input;
 
+// Constant to prevent new array creation on every render
+const SELECTED_COUNTRIES = ["us"];
+
 type AmazonSearchQueryPerformanceProps = {
   onBack?: () => void;
+  onGeoChange?: (geoDetails: GeoMapsModel) => void;
 };
 const AmazonSearchQueryPerformance: FC<AmazonSearchQueryPerformanceProps> = ({
   onBack,
+  onGeoChange,
 }) => {
   const [mode, setMode] = useState<"ASINs" | "BRANDS">("ASINs");
   const [fetching, setFetching] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [selectedGeo, setSelectedGeo] = useState<GeoMapsModel | null>(null);
+  const [geoInitialized, setGeoInitialized] = useState(false);
   const [selectedYear, setSelectedYear] = useState<string | undefined>(
     undefined
   );
@@ -237,6 +246,46 @@ const AmazonSearchQueryPerformance: FC<AmazonSearchQueryPerformanceProps> = ({
   );
   const [selectedAsins, setSelectedAsins] = useState<string[]>([]);
   const isAsins = mode === "ASINs";
+  console.log(selectedGeo, "SelectedGeo");
+
+  // Load initial geo from cache on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const savedGeoKey = (await get("selectedGeo")) as string;
+        console.log("Loaded savedGeoKey:", savedGeoKey);
+        if (savedGeoKey && geoMaps[savedGeoKey]) {
+          setSelectedGeo(geoMaps[savedGeoKey]);
+        } else {
+          // Default to US if no saved geo
+          setSelectedGeo(geoMaps.AMAZON_US);
+        }
+      } catch {
+        setSelectedGeo(geoMaps.AMAZON_US);
+      } finally {
+        setGeoInitialized(true);
+      }
+    })();
+  }, []);
+
+  // Use useMemo to ensure baseDomain is stable across renders
+  const baseDomain = useMemo(
+    () => selectedGeo?.baseDomain || "sellercentral.amazon.com",
+    [selectedGeo?.baseDomain]
+  );
+
+  // Memoize the geo change handler to prevent creating new function on every render
+  const handleGeoChange = useCallback(
+    (geoDetails: GeoMapsModel) => {
+      console.log("[AmazonSearchQueryPerformance] Geo changed:", geoDetails);
+      setSelectedGeo(geoDetails);
+      if (onGeoChange) {
+        onGeoChange(geoDetails);
+      }
+    },
+    [onGeoChange]
+  );
+
   const {
     loading,
     brandOptions,
@@ -250,7 +299,25 @@ const AmazonSearchQueryPerformance: FC<AmazonSearchQueryPerformanceProps> = ({
     handleSelectRange,
     childLabel,
     childOptions,
-  } = useCustomerJourneyMetadata();
+  } = useCustomerJourneyMetadata(
+    SELECTED_COUNTRIES,
+    baseDomain,
+    !geoInitialized
+  );
+
+  // Show loading state while geo is being initialized
+  if (!geoInitialized) {
+    return (
+      <Layout className="ba-layout">
+        <Content
+          className="ba-content"
+          style={{ textAlign: "center", padding: "50px" }}
+        >
+          Loading...
+        </Content>
+      </Layout>
+    );
+  }
 
   // For monthly range, extract year and month options from nested metadata
   let yearOptions: { value: string; label: string }[] = [];
@@ -411,6 +478,8 @@ const AmazonSearchQueryPerformance: FC<AmazonSearchQueryPerformanceProps> = ({
                   reportId: "query-performance-asin-report-table",
                   filterSelections,
                   selectedCountries: ["us"],
+                  baseDomain:
+                    selectedGeo?.baseDomain || "sellercentral.amazon.com",
                 },
                 (response) => {
                   if (chrome.runtime.lastError) {
@@ -509,6 +578,7 @@ const AmazonSearchQueryPerformance: FC<AmazonSearchQueryPerformanceProps> = ({
         reportingRange,
         period,
         selectedCountries: ["us"],
+        baseDomain: selectedGeo?.baseDomain || "sellercentral.amazon.com",
       },
       (response) => {
         setFetching(false);
@@ -535,18 +605,10 @@ const AmazonSearchQueryPerformance: FC<AmazonSearchQueryPerformanceProps> = ({
 
   return (
     <Layout className="ba-layout">
-      <Header className="ba-header">
-        <Row justify="end" align="middle">
-          <ReviewGeoDropdown
-            selectedGeo={(geoDetails: GeoMapsModel) => {
-              console.log("Selected geo:", geoDetails);
-            }}
-          />
-        </Row>
-      </Header>
+      <GeoHeader skipInitialCallback={true} onGeoChange={handleGeoChange} />
 
       <Content className="ba-content">
-        <Row justify="space-between" align="middle" className="ba-title-row">
+        <Row justify="start" align="bottom" className="ba-title-row">
           <Space size={8} align="center">
             <Button
               type="text"
@@ -554,7 +616,7 @@ const AmazonSearchQueryPerformance: FC<AmazonSearchQueryPerformanceProps> = ({
               className="ba-back-btn"
               onClick={onBack}
             />
-            <Title level={4} className="ba-title">
+            <Title level={5} className="ba-title" style={{ margin: 1 }}>
               Search Query Performance
             </Title>
           </Space>
@@ -883,17 +945,13 @@ const AmazonSearchQueryPerformance: FC<AmazonSearchQueryPerformanceProps> = ({
               onClick={handleFetch}
               loading={fetching || downloading}
             >
-              {fetching || downloading ? "Fetching..." : "Fetch"}
+              {fetching || downloading ? "Getting Data..." : "Get Data"}
             </Button>
           </Col>
         </Row>
       </Content>
 
-      <Footer className="ba-footer">
-        <Text type="secondary" className="ba-powered-by">
-          Powered by <span className="ba-brand">sellerapp</span>
-        </Text>
-      </Footer>
+      <AppFooter />
     </Layout>
   );
 };

@@ -1,4 +1,4 @@
-import { FC, useState } from "react";
+import { FC, useState, useEffect, useMemo, useCallback } from "react";
 import {
   Layout,
   Row,
@@ -20,19 +20,27 @@ import {
 
 import "./Popup.css";
 import { useTopSearchTermsMetadata } from "./useTopSearchTermsMetadata";
-import { ReviewGeoDropdown } from "../components/ReviewGeoDropdown";
-import { GeoMapsModel } from "../constants/geo-constants";
+import { GeoHeader } from "../components/GeoHeader";
+import { AppFooter } from "../components/AppFooter";
+import { GeoMapsModel, geoMaps } from "../constants/geo-constants";
+import { get } from "../helpers/Cache";
 
-const { Header, Content, Footer } = Layout;
+// Constant to prevent new array creation on every render
+const SELECTED_COUNTRIES = ["us"];
+
+const { Content } = Layout;
 const { Title, Text, Link } = Typography;
 const { TextArea } = Input;
 
 type TopSearchTermsProps = {
   onBack?: () => void;
+  onGeoChange?: (geoDetails: GeoMapsModel) => void;
 };
 
-const TopSearchTerms: FC<TopSearchTermsProps> = ({ onBack }) => {
+const TopSearchTerms: FC<TopSearchTermsProps> = ({ onBack, onGeoChange }) => {
   const [searchKeyword, setSearchKeyword] = useState<string>("");
+  const [selectedGeo, setSelectedGeo] = useState<GeoMapsModel | null>(null);
+  const [geoInitialized, setGeoInitialized] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
     undefined
   );
@@ -49,6 +57,41 @@ const TopSearchTerms: FC<TopSearchTermsProps> = ({ onBack }) => {
   const [topClickedBrands, setTopClickedBrands] = useState<string>("");
   const [fetching, setFetching] = useState(false);
 
+  // Load initial geo from cache on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const savedGeoKey = (await get("selectedGeo")) as string;
+        if (savedGeoKey && geoMaps[savedGeoKey]) {
+          setSelectedGeo(geoMaps[savedGeoKey]);
+        } else {
+          setSelectedGeo(geoMaps.AMAZON_US);
+        }
+      } catch {
+        setSelectedGeo(geoMaps.AMAZON_US);
+      } finally {
+        setGeoInitialized(true);
+      }
+    })();
+  }, []);
+
+  // Use useMemo to ensure baseDomain is stable across renders
+  const baseDomain = useMemo(
+    () => selectedGeo?.baseDomain || "sellercentral.amazon.com",
+    [selectedGeo?.baseDomain]
+  );
+
+  // Memoize the geo change handler
+  const handleGeoChange = useCallback(
+    (geoDetails: GeoMapsModel) => {
+      setSelectedGeo(geoDetails);
+      if (onGeoChange) {
+        onGeoChange(geoDetails);
+      }
+    },
+    [onGeoChange]
+  );
+
   const {
     loading,
     categoryOptions,
@@ -59,7 +102,25 @@ const TopSearchTerms: FC<TopSearchTermsProps> = ({ onBack }) => {
     handleSelectRange: handleSelectRangeFromHook,
     childLabel,
     childOptions,
-  } = useTopSearchTermsMetadata();
+  } = useTopSearchTermsMetadata(
+    SELECTED_COUNTRIES,
+    baseDomain,
+    !geoInitialized
+  );
+
+  // Show loading state while geo is being initialized
+  if (!geoInitialized) {
+    return (
+      <Layout className="ba-layout">
+        <Content
+          className="ba-content"
+          style={{ textAlign: "center", padding: "50px" }}
+        >
+          Loading...
+        </Content>
+      </Layout>
+    );
+  }
 
   // For monthly range, extract year and month options from nested metadata
   let yearOptions: { value: string; label: string }[] = [];
@@ -217,6 +278,7 @@ const TopSearchTerms: FC<TopSearchTermsProps> = ({ onBack }) => {
             reportId: "top-search-terms-report-table",
             filterSelections,
             selectedCountries: ["us"],
+            baseDomain: selectedGeo?.baseDomain || "sellercentral.amazon.com",
           },
           (response) => {
             if (chrome.runtime.lastError) {
@@ -319,15 +381,7 @@ const TopSearchTerms: FC<TopSearchTermsProps> = ({ onBack }) => {
   };
   return (
     <Layout className="ba-layout">
-      <Header className="ba-header">
-        <Row justify="end" align="middle">
-          <ReviewGeoDropdown
-            selectedGeo={(geoDetails: GeoMapsModel) => {
-              console.log("Selected geo:", geoDetails);
-            }}
-          />
-        </Row>
-      </Header>
+      <GeoHeader skipInitialCallback={true} onGeoChange={handleGeoChange} />
 
       <Content className="ba-content">
         <Row justify="space-between" align="middle" className="ba-title-row">
@@ -338,7 +392,7 @@ const TopSearchTerms: FC<TopSearchTermsProps> = ({ onBack }) => {
               className="ba-back-btn"
               onClick={onBack}
             />
-            <Title level={4} className="ba-title">
+            <Title level={5} className="ba-title" style={{ margin: 1 }}>
               Top Search Terms
             </Title>
           </Space>
@@ -362,7 +416,10 @@ const TopSearchTerms: FC<TopSearchTermsProps> = ({ onBack }) => {
           />
         </div>
 
-        <div className="ba-input-block ba-input-marketplace">
+        <div
+          className="ba-input-block ba-input-marketplace"
+          style={{ marginTop: 16 }}
+        >
           <Select
             placeholder="Top Clicked Category (optional)"
             className="ba-select-full"
@@ -470,7 +527,10 @@ const TopSearchTerms: FC<TopSearchTermsProps> = ({ onBack }) => {
           )}
         </Row>
 
-        <div className="ba-input-block ba-input-large">
+        <div
+          className="ba-input-block ba-input-large"
+          style={{ marginTop: 16 }}
+        >
           <TextArea
             rows={4}
             placeholder="Top clicked products (optional)"
@@ -493,17 +553,13 @@ const TopSearchTerms: FC<TopSearchTermsProps> = ({ onBack }) => {
         <Row justify="end" className="ba-actions-row">
           <Col>
             <Button type="primary" onClick={handleFetch} loading={fetching}>
-              {fetching ? "Fetching..." : "Fetch"}
+              {fetching ? "Getting Data..." : "Get Data"}
             </Button>
           </Col>
         </Row>
       </Content>
 
-      <Footer className="ba-footer">
-        <Text type="secondary" className="ba-powered-by">
-          Powered by <span className="ba-brand">sellerapp</span>
-        </Text>
-      </Footer>
+      <AppFooter />
     </Layout>
   );
 };

@@ -16,12 +16,13 @@ import {
   BulbOutlined,
   ArrowRightOutlined,
 } from "@ant-design/icons";
-import { ReviewGeoDropdown } from "../components/ReviewGeoDropdown";
+import { GeoHeader } from "../components/GeoHeader";
+import { AppFooter } from "../components/AppFooter";
 import { GeoMapsModel } from "../constants/geo-constants";
 
 import "./Popup.css";
 
-const { Header, Content, Footer } = Layout;
+const { Content } = Layout;
 const { Title, Text, Link } = Typography;
 
 type BrandAnalyticsPopupProps = {
@@ -29,6 +30,7 @@ type BrandAnalyticsPopupProps = {
   onOpenTopSearchTerms?: () => void;
   onOpenSearchCatalog?: () => void;
   onOpenCouponReport?: () => void;
+  onGeoChange?: (geoDetails: GeoMapsModel) => void;
 };
 
 const BrandAnalyticsPopup: FC<BrandAnalyticsPopupProps> = ({
@@ -36,6 +38,7 @@ const BrandAnalyticsPopup: FC<BrandAnalyticsPopupProps> = ({
   onOpenTopSearchTerms,
   onOpenSearchCatalog,
   onOpenCouponReport,
+  onGeoChange,
 }) => {
   const [loadingMetadata, setLoadingMetadata] = useState(false);
   const [selectedGeo, setSelectedGeo] = useState<GeoMapsModel>();
@@ -87,29 +90,16 @@ const BrandAnalyticsPopup: FC<BrandAnalyticsPopupProps> = ({
 
   return (
     <Layout className="ba-layout">
-      <Header className="ba-header">
-        <Row justify="end" align="middle">
-          {/* <Space size="middle">
-            <Button type="text" icon={<MenuOutlined />} />
-            <Button type="text" icon={<SearchOutlined />} />
-          </Space> */}
-
-          <ReviewGeoDropdown
-            selectedGeo={(geoDetails: GeoMapsModel) => {
-              setSelectedGeo(geoDetails);
-              console.log("Selected geo:", geoDetails);
-            }}
-          />
-        </Row>
-      </Header>
+      <GeoHeader
+        onGeoChange={(geoDetails: GeoMapsModel) => {
+          setSelectedGeo(geoDetails);
+          if (onGeoChange) {
+            onGeoChange(geoDetails);
+          }
+        }}
+      />
 
       <Content className="ba-content">
-        <Row justify="space-between" align="middle" className="ba-title-row">
-          <Title level={4} className="ba-title">
-            Brand Analytics Report
-          </Title>
-        </Row>
-
         <Row gutter={[12, 12]} className="ba-card-grid">
           {cards.map((card) => {
             const isAsqp = card.key === "asqp";
@@ -157,11 +147,7 @@ const BrandAnalyticsPopup: FC<BrandAnalyticsPopupProps> = ({
         </Row>
       </Content>
 
-      <Footer className="ba-footer">
-        <Text type="secondary" className="ba-powered-by">
-          Powered by <span className="ba-brand">sellerapp</span>
-        </Text>
-      </Footer>
+      <AppFooter />
     </Layout>
   );
 };
