@@ -81,11 +81,11 @@ const BrandAnalyticsPopup: FC<BrandAnalyticsPopupProps> = ({
       title: "Search Catalog Performance",
       variant: "primary" as const,
     },
-    {
-      key: "coupon",
-      title: "Coupon Performance Report",
-      variant: "primary" as const,
-    },
+    // {
+    //   key: "coupon",
+    //   title: "Coupon Performance Report",
+    //   variant: "primary" as const,
+    // },
   ];
 
   return (

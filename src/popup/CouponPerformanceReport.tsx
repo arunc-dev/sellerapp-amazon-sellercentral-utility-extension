@@ -127,14 +127,6 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
           </Space>
         </Row>
 
-        <div className="ba-input-block ba-input-marketplace">
-          <Select
-            defaultValue="USA"
-            className="ba-select-full"
-            options={[{ value: "USA", label: "USA" }]}
-          />
-        </div>
-
         <div className="ba-input-block ba-input-large">
           <TextArea
             rows={3}

@@ -423,14 +423,6 @@ const SearchCatalogPerformance: FC<SearchCatalogPerformanceProps> = ({
           </Space>
         </Row>
 
-        <div className="ba-input-block ba-input-marketplace">
-          <Select
-            defaultValue="USA"
-            className="ba-select-full"
-            options={[{ value: "USA", label: "USA" }]}
-          />
-        </div>
-
         <Row gutter={[0, 16]} className="ba-filters">
           <Col span={24}>
             <div className="ba-filter-field">
