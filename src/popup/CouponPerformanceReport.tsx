@@ -10,6 +10,7 @@ import {
   Select,
   Input,
   DatePicker,
+  Table,
 } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import {
@@ -102,6 +103,8 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
+  const [fetching, setFetching] = useState(false);
+  const [couponData, setCouponData] = useState<any[]>([]);
 
   const typeOptions = [
     { label: "Standard", value: "standard" },
@@ -121,19 +124,98 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
     { label: "Expiring soon", value: "EXPIRING_SOON" },
   ];
 
-  // Show loading state while geo is being initialized
-  if (!geoInitialized) {
-    return (
-      <Layout className="ba-layout">
-        <Content
-          className="ba-content"
-          style={{ textAlign: "center", padding: "50px" }}
-        >
-          Loading...
-        </Content>
-      </Layout>
+  // CSV export function for Coupon Performance
+  const exportCouponPerformanceCSV = (rows: any[]) => {
+    const headers = [
+      "Title",
+      "ASIN Count",
+      "Budget",
+      "Budget Type",
+      "Discount Type",
+      "Discount Value",
+      "Customer Segment",
+      "Coupon Type",
+      "Once Per Customer",
+      "Status",
+      "PSSS Status",
+      "Start Date",
+      "End Date",
+      "Promotion Setup Service ID",
+      "Revision ID",
+      "Needs Attention",
+      "Budget Status",
+      "Budget Spent",
+      "Budget Utilization (%)",
+      "Clip Count",
+      "Redemption Count",
+      "Sales",
+      "Participation Fee Preview",
+      "Performance Fee Preview",
+      "Fee Cap Preview",
+      "Participation Fee Charged",
+      "Performance Fee Charged",
+      "Currency Code",
+      "Fee Cap",
+      "Customer ID",
+      "Marketplace ID",
+      "Obfuscated Promotion ID",
+    ];
+
+    const csvRows = rows.map((row) => [
+      row.title || "",
+      row.asinCount || "",
+      row.budget || "",
+      row.budgetType || "",
+      row.discountType || "",
+      row.discountValue || "",
+      row.customerSegment || "",
+      row.couponType || "",
+      row.oncePerCustomer || "",
+      row.status || "",
+      row.psssStatus || "",
+      row.startDate || "",
+      row.endDate || "",
+      row.promotionSetupServiceId || "",
+      row.revisionId || "",
+      row.needsAttention || "",
+      row.budgetStatus || "",
+      row.couponMetrics?.budgetSpent || "",
+      row.couponMetrics?.budgetUtilization || "",
+      row.couponMetrics?.clipCount || "",
+      row.couponMetrics?.redemptionCount || "",
+      row.couponMetrics?.sales || "",
+      row.couponFee?.feePreview?.participationFee || "",
+      row.couponFee?.feePreview?.performanceFee || "",
+      row.couponFee?.feePreview?.feeCap || "",
+      row.couponFee?.feeCharged?.participationFee || "",
+      row.couponFee?.feeCharged?.performanceFee || "",
+      row.couponFee?.currencyCode || "",
+      row.couponFee?.feeCap || "",
+      row.customerId || "",
+      row.marketplaceId || "",
+      row.obfuscatedPromotionId || "",
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...csvRows.map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `coupon_performance_${new Date().toISOString().split("T")[0]}.csv`
     );
-  }
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <Layout className="ba-layout">
@@ -255,7 +337,7 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
           </Col>
         </Row>
 
-        <Row gutter={[0, 16]} className="ba-filters">
+        {/* <Row gutter={[0, 16]} className="ba-filters">
           <Col span={24}>
             <div className="ba-filter-field">
               <Text className="ba-filter-label">{childLabel}</Text>
@@ -271,13 +353,15 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
               />
             </div>
           </Col>
-        </Row>
+        </Row> */}
         <Row justify="end" className="ba-actions-row">
           <Col>
             <Button
               type="primary"
+              loading={fetching}
               onClick={async () => {
                 try {
+                  setFetching(true);
                   const startDateStr = startDate
                     ? startDate.format("YYYY-MM-DDTHH:mm:ss")
                     : "";
@@ -316,15 +400,22 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
                       "Error fetching coupon performance:",
                       response.error
                     );
+                    alert("Failed to fetch coupon performance report");
                   } else {
                     console.log("Coupon Performance data:", response);
+                    setCouponData(response.rows || []);
+                    // Export to CSV
+                    exportCouponPerformanceCSV(response.rows || []);
                   }
                 } catch (error) {
                   console.error("Error:", error);
+                  alert("Failed to fetch coupon performance report");
+                } finally {
+                  setFetching(false);
                 }
               }}
             >
-              Get Data
+              {fetching ? "Getting Data..." : "Get Data"}
             </Button>
           </Col>
         </Row>
