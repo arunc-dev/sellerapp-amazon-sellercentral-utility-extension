@@ -9,7 +9,9 @@ import {
   Avatar,
   Select,
   Input,
+  DatePicker,
 } from "antd";
+import dayjs, { Dayjs } from "dayjs";
 import {
   MenuOutlined,
   SearchOutlined,
@@ -94,6 +96,31 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
     !geoInitialized
   );
 
+  const [searchField, setSearchField] = useState<string>("coupon_title");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [startDate, setStartDate] = useState<Dayjs | null>(null);
+  const [endDate, setEndDate] = useState<Dayjs | null>(null);
+
+  const typeOptions = [
+    { label: "Standard", value: "standard" },
+    { label: "Subscribe & Save", value: "subscribe_and_save" },
+    { label: "Reorder Coupon", value: "reorder_rewards" },
+  ];
+
+  const statusOptions = [
+    { label: "Running", value: "RUNNING" },
+    { label: "Expired", value: "EXPIRED" },
+    { label: "Processing", value: "PROCESSING" },
+    { label: "Submitted", value: "SUBMITTED" },
+    { label: "Failed", value: "FAILED" },
+    { label: "Cancelled", value: "CANCELLED" },
+    { label: "Cancelling", value: "CANCELLING" },
+    { label: "Upcoming", value: "UPCOMING" },
+    { label: "Expiring soon", value: "EXPIRING_SOON" },
+  ];
+
   // Show loading state while geo is being initialized
   if (!geoInitialized) {
     return (
@@ -127,32 +154,103 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
           </Space>
         </Row>
 
-        <div className="ba-input-block ba-input-large">
-          <TextArea
-            rows={3}
-            placeholder="Enter Coupon name(s) (optional)"
-            className="ba-textarea-muted"
-          />
-        </div>
-
-        <Row gutter={[0, 16]} className="ba-filters">
-          <Col span={24}>
-            <div className="ba-filter-field">
+        <Row gutter={[12, 12]} className="ba-filters" align="middle">
+          <Col xs={24} sm={24} md={12} lg={10}>
+            <div style={{ display: "flex", gap: 8 }}>
               <Select
-                placeholder="Coupon Type"
-                className="ba-select-full"
-                options={[{ value: "any", label: "Coupon Type" }]}
+                value={searchField}
+                onChange={(v) => setSearchField(String(v))}
+                options={[
+                  { value: "coupon_title", label: "Coupon title" },
+                  { value: "asin", label: "ASIN" },
+                ]}
+                style={{ minWidth: 160 }}
+              />
+
+              <Input.Search
+                placeholder="Search by coupon title"
+                enterButton
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onSearch={(val) => {
+                  setSearchQuery(val);
+                  console.log("Search coupon by", searchField, val);
+                }}
               />
             </div>
           </Col>
 
-          <Col span={24}>
-            <div className="ba-filter-field">
-              <Select
-                placeholder="Status"
-                className="ba-select-full"
-                options={[{ value: "any", label: "Status" }]}
-              />
+          <Col xs={24} sm={12} md={6} lg={4}>
+            <Select
+              mode="multiple"
+              placeholder="Type"
+              className="ba-select-full"
+              options={typeOptions}
+              value={typeFilter}
+              onChange={(vals) => setTypeFilter(vals as string[])}
+              allowClear
+            />
+          </Col>
+
+          <Col xs={24} sm={12} md={6} lg={4}>
+            <Select
+              mode="multiple"
+              placeholder="Status"
+              className="ba-select-full"
+              options={statusOptions}
+              value={statusFilter}
+              onChange={(vals) => setStatusFilter(vals as string[])}
+              allowClear
+            />
+          </Col>
+
+          <Col xs={24} sm={24} md={24} lg={6}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Button
+                  onClick={() => {
+                    setStartDate(dayjs().subtract(30, "day").startOf("day"));
+                    setEndDate(dayjs().endOf("day"));
+                  }}
+                >
+                  Last 30 days
+                </Button>
+                <Button
+                  onClick={() => {
+                    setStartDate(dayjs().subtract(6, "month").startOf("day"));
+                    setEndDate(dayjs().endOf("day"));
+                  }}
+                >
+                  Last 6 months
+                </Button>
+                <Button
+                  onClick={() => {
+                    setStartDate(null);
+                    setEndDate(null);
+                  }}
+                >
+                  Clear
+                </Button>
+              </div>
+
+              <div style={{ display: "flex", gap: 8 }}>
+                <DatePicker
+                  placeholder="Start date"
+                  value={startDate}
+                  onChange={(d) =>
+                    setStartDate(d ? (d as Dayjs).startOf("day") : null)
+                  }
+                  style={{ width: "50%" }}
+                />
+                <DatePicker
+                  placeholder="End date"
+                  value={endDate}
+                  onChange={(d) =>
+                    setEndDate(d ? (d as Dayjs).endOf("day") : null)
+                  }
+                  style={{ width: "50%" }}
+                />
+              </div>
             </div>
           </Col>
         </Row>
@@ -173,31 +271,57 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
               />
             </div>
           </Col>
-
-          <Col span={24}>
-            <div className="ba-filter-field">
-              <Text className="ba-filter-label">CSV Grouping</Text>
-              <Select
-                disabled={!childOptions.length}
-                loading={loading}
-                className="ba-select-full ba-select-accent"
-                options={childOptions.map((c) => ({
-                  value: c.value,
-                  label: c.label,
-                }))}
-                value={selectedRangeChild}
-                onChange={setSelectedRangeChild}
-              />
-            </div>
-          </Col>
         </Row>
         <Row justify="end" className="ba-actions-row">
           <Col>
             <Button
               type="primary"
-              onClick={() => {
-                // TODO: replace with Coupon Performance fetch API call
-                console.log("Fetch Coupon Performance report");
+              onClick={async () => {
+                try {
+                  const startDateStr = startDate
+                    ? startDate.format("YYYY-MM-DDTHH:mm:ss")
+                    : "";
+                  const endDateStr = endDate
+                    ? endDate.format("YYYY-MM-DDTHH:mm:ss")
+                    : "";
+
+                  const response: any = await new Promise((resolve, reject) => {
+                    chrome.runtime.sendMessage(
+                      {
+                        type: "DOWNLOAD_COUPON_PERFORMANCE",
+                        startDate: startDateStr,
+                        endDate: endDateStr,
+                        searchField,
+                        searchQuery,
+                        typeFilter,
+                        statusFilter,
+                        baseDomain: baseDomain,
+                      },
+                      (response) => {
+                        if (chrome.runtime.lastError) {
+                          console.error(
+                            "Chrome runtime error:",
+                            chrome.runtime.lastError
+                          );
+                          reject(new Error(chrome.runtime.lastError.message));
+                        } else {
+                          resolve(response);
+                        }
+                      }
+                    );
+                  });
+
+                  if (response?.error) {
+                    console.error(
+                      "Error fetching coupon performance:",
+                      response.error
+                    );
+                  } else {
+                    console.log("Coupon Performance data:", response);
+                  }
+                } catch (error) {
+                  console.error("Error:", error);
+                }
               }}
             >
               Get Data

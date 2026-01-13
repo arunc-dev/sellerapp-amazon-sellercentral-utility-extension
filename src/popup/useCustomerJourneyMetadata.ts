@@ -76,7 +76,6 @@ export const useCustomerJourneyMetadata = (
     }
 
     // Prevent fetching if already fetching
-    debugger;
     if (isFetchingRef.current) {
       return;
     }

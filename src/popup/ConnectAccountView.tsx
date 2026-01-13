@@ -126,7 +126,7 @@ const ConnectAccountView: FC<ConnectAccountViewProps> = ({
             return (
               <Col key={card.key} span={12}>
                 <Card
-                  className="ba-card ba-card-primary ba-card-disabled"
+                  className={`ba-card ba-card-primary ba-card-disabled ba-card-${card.key}`}
                   bordered={false}
                   bodyStyle={{ padding: 14, height: 110, display: "flex" }}
                   style={{ opacity: 0.6, cursor: "not-allowed" }}

@@ -81,11 +81,11 @@ const BrandAnalyticsPopup: FC<BrandAnalyticsPopupProps> = ({
       title: "Search Catalog Performance",
       variant: "primary" as const,
     },
-    // {
-    //   key: "coupon",
-    //   title: "Coupon Performance Report",
-    //   variant: "primary" as const,
-    // },
+    {
+      key: "coupon",
+      title: "Coupon Performance Report",
+      variant: "primary" as const,
+    },
   ];
 
   return (
@@ -111,7 +111,7 @@ const BrandAnalyticsPopup: FC<BrandAnalyticsPopupProps> = ({
               <Col key={card.key} span={12}>
                 <Card
                   hoverable
-                  className={`ba-card ba-card-${card.variant} ${
+                  className={`ba-card ba-card-${card.variant} ba-card-${card.key} ${
                     isAsqp || isTopSearch || isCatalog || isCoupon
                       ? "ba-card-clickable"
                       : ""

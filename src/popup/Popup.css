@@ -52,7 +52,8 @@ body {
   border-radius: 16px;
   box-shadow: none;
   transition:
-    background 0.2s ease,
+    background 0.3s ease,
+    background-image 0.3s ease,
     color 0.2s ease,
     box-shadow 0.2s ease,
     transform 0.2s ease;
@@ -64,24 +65,87 @@ body {
 
 .ba-card-primary {
   background: linear-gradient(135deg, #1976ff, #0052cc);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-blend-mode: multiply;
+  position: relative;
+  overflow: hidden;
+  height: 120px;
+}
+
+.ba-card-primary::before {
+  content: "";
+  position: absolute;
+  top: 0px;
+  left: -10px;
+  right: 0px;
+  bottom: -80px;
+  background-size: 70px;
+  background-position: left center;
+  background-repeat: no-repeat;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.ba-card-primary:hover::before {
+  opacity: 1;
+  background-color: white;
+  transform: translateY(-2px) scale(1.02);
 }
 
 .ba-card-primary .ba-card-title {
   color: #ffffff;
+  position: relative;
+  z-index: 2;
 }
 
 .ba-card-primary:hover {
-  background: #ffffff;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
   transform: translateY(-2px) scale(1.02);
 }
 
 .ba-card-primary:hover .ba-card-title {
-  color: #1f2933;
+  color: #000000;
 }
 
 .ba-card-primary:hover .ba-card-cta.ant-btn-primary {
   background-color: #1677ff;
+}
+
+/* Card specific background images */
+.ba-card-asqp::before {
+  background-image: url("/background/Amazon's\ Search\ Query\ Performance\ 1.png");
+}
+
+.ba-card-asqp:hover::before {
+  background-image: url("/background/Amazon's\ Search\ Query\ Performance\ 2.png");
+}
+
+.ba-card-top-search::before {
+  background-image: url("/background/Top\ Search\ Terms\ 1.png");
+}
+
+.ba-card-top-search:hover::before {
+  background-image: url("/background/Top\ Search\ Terms\ 2.png");
+}
+
+.ba-card-catalog::before {
+  background-image: url("/background/Search\ Catalog\ Performance\ 1.png");
+}
+
+.ba-card-catalog:hover::before {
+  background-image: url("/background/Search\ Catalog\ Performance\ 2.png");
+}
+
+.ba-card-coupon::before {
+  background-image: url("/background/Coupon\ Performance\ Report\ 1.png");
+}
+
+.ba-card-coupon:hover::before {
+  background-image: url("/background/Coupon\ Performance\ Report\ 2.png");
 }
 
 .ba-card-body {
@@ -89,14 +153,19 @@ body {
   flex-direction: column;
   justify-content: space-between;
   width: 100%;
+  position: relative;
+  z-index: 2;
 }
 
 .ba-card-title {
   font-weight: 600;
+  color: #ffffff;
 }
 
 .ba-card-cta {
   align-self: flex-end;
+  position: relative;
+  z-index: 3;
 }
 
 .ba-lang-btn {

@@ -762,4 +762,107 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
     return true;
   }
+
+  if (request.type === "DOWNLOAD_COUPON_PERFORMANCE") {
+    (async () => {
+      try {
+        console.log("[Background] Starting Coupon Performance report fetch...");
+
+        const baseDomain = request.baseDomain || "sellercentral.amazon.com";
+        // Use cached CSRF token
+        const csrfToken = await getCsrfToken(baseDomain);
+
+        const {
+          startDate,
+          endDate,
+          searchField,
+          searchQuery,
+          typeFilter,
+          statusFilter,
+        } = request;
+
+        const params = new URLSearchParams({
+          afterStartDateFilter: startDate || "",
+          beforeStartDateFilter: endDate || "",
+          paginationSize: "25",
+          paginationSkip: "0",
+        });
+        if (searchQuery) {
+          if (searchField == "coupon_title") {
+            params.append("internalTitleFilter", searchQuery);
+          } else if (searchField == "asin") {
+            params.append("latestProductsASINFilter", searchQuery);
+          }
+        }
+        if (typeFilter && typeFilter.length > 0) {
+          params.append("couponTypeFilter", typeFilter.join(","));
+        }
+        if (statusFilter && statusFilter.length > 0) {
+          // Convert status to uppercase enums as expected by API
+          const upperStatus = statusFilter.map((s: string) => s.toUpperCase());
+          params.append("couponStatusFilter", upperStatus.join(","));
+        }
+
+        console.log("[Background] Fetching Coupon Performance report...");
+        const reportsResp = await fetch(
+          `https://${baseDomain}/coupons/api/getCouponPromotions?${params}`,
+          {
+            method: "GET",
+            credentials: "include",
+            headers: {
+              accept: "application/json, text/plain, */*",
+              "anti-csrftoken-a2z": csrfToken,
+            },
+          }
+        );
+
+        if (!reportsResp.ok) {
+          const errorText = await reportsResp.text();
+          console.error(
+            "[Background] Coupon reports request failed:",
+            reportsResp.status,
+            errorText
+          );
+          throw new Error(`Reports request failed with ${reportsResp.status}`);
+        }
+
+        const data = await reportsResp.json();
+
+        console.log(
+          "[Background] Successfully fetched Coupon Performance data:",
+          {
+            totalCount: data.promotionTotalCount,
+            items: data.promotionSearchResultList?.length,
+          }
+        );
+        sendResponse({
+          status: "success",
+          totalItems: data.promotionTotalCount,
+          rows: data.promotionSearchResultList || [],
+        });
+      } catch (error) {
+        console.error(
+          "[Background] Error in Coupon Performance handler:",
+          error
+        );
+        sendResponse({ error: String(error) });
+      }
+    })();
+
+    return true;
+  }
+});
+
+chrome.action.onClicked.addListener((tab) => {
+  if (!tab?.id) return;
+
+  // 1) OPEN FIRST (must be immediate in user gesture context)
+  chrome.sidePanel.open({ tabId: tab.id });
+
+  // 2) then set options (safe)
+  chrome.sidePanel.setOptions({
+    tabId: tab.id,
+    path: "popup.html",
+    enabled: true,
+  });
 });
