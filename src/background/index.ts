@@ -201,8 +201,36 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
           );
         }
 
-        const data = await metadataResponse.json();
-        sendResponse({ data });
+        const topSearchData = await metadataResponse.json();
+
+        // Also fetch Query Performance metadata for ASINs
+        const queryPerfResponse = await fetch(
+          `https://${baseDomain}/api/brand-analytics/v1/dashboard/query-performance/metadata`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              accept: "application/json",
+              "content-type": "application/json",
+              "x-requested-with": "XMLHttpRequest",
+              "anti-csrftoken-a2z": csrfToken,
+            },
+            body: JSON.stringify({
+              selectedCountries: request.selectedCountries ?? ["us"],
+            }),
+          }
+        );
+
+        let queryPerfData = null;
+        if (queryPerfResponse.ok) {
+          queryPerfData = await queryPerfResponse.json();
+        }
+
+        // Merge both metadata sources
+        sendResponse({
+          data: topSearchData,
+          queryPerformanceData: queryPerfData,
+        });
       } catch (error) {
         sendResponse({ error: String(error) });
       }
@@ -263,8 +291,36 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
           );
         }
 
-        const data = await metadataResponse.json();
-        sendResponse({ data });
+        const catalogData = await metadataResponse.json();
+
+        // Also fetch Query Performance metadata for ASINs
+        const queryPerfResponse = await fetch(
+          `https://${baseDomain}/api/brand-analytics/v1/dashboard/query-performance/metadata`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              accept: "application/json",
+              "content-type": "application/json",
+              "x-requested-with": "XMLHttpRequest",
+              "anti-csrftoken-a2z": csrfToken,
+            },
+            body: JSON.stringify({
+              selectedCountries: request.selectedCountries ?? ["us"],
+            }),
+          }
+        );
+
+        let queryPerfData = null;
+        if (queryPerfResponse.ok) {
+          queryPerfData = await queryPerfResponse.json();
+        }
+
+        // Merge both metadata sources
+        sendResponse({
+          data: catalogData,
+          queryPerformanceData: queryPerfData,
+        });
       } catch (error) {
         sendResponse({ error: String(error) });
       }

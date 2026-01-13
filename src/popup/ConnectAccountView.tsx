@@ -88,7 +88,7 @@ const ConnectAccountView: FC<ConnectAccountViewProps> = ({
           message={
             <Space direction="vertical" size={12} style={{ width: "100%" }}>
               <Space align="start" size={8}>
-                <LinkOutlined style={{ fontSize: 20, color: "#d32f2f" }} />
+                <LinkOutlined style={{ fontSize: 20, color: "#C00814" }} />
                 <div>
                   <Text style={{ display: "block", fontSize: 14 }}>
                     Login to Your Seller Account
@@ -101,7 +101,7 @@ const ConnectAccountView: FC<ConnectAccountViewProps> = ({
               <Button
                 type="primary"
                 danger
-                style={{ width: 180 }}
+                style={{ width: 180, backgroundColor: "#C00814" }}
                 icon={<ExportOutlined />}
                 iconPlacement="end"
                 onClick={handleConnect}
@@ -129,7 +129,12 @@ const ConnectAccountView: FC<ConnectAccountViewProps> = ({
                   className={`ba-card ba-card-primary ba-card-disabled ba-card-${card.key}`}
                   bordered={false}
                   bodyStyle={{ padding: 14, height: 110, display: "flex" }}
-                  style={{ opacity: 0.6, cursor: "not-allowed" }}
+                  style={{
+                    opacity: 0.6,
+                    cursor: "not-allowed",
+                    pointerEvents: "none",
+                    filter: "grayscale(.5)",
+                  }}
                 >
                   <div className="ba-card-body">
                     <Text className="ba-card-title">{card.title}</Text>

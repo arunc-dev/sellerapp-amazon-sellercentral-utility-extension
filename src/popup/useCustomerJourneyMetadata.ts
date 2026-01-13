@@ -70,10 +70,10 @@ export const useCustomerJourneyMetadata = (
   const isFetchingRef = useRef(false);
 
   useEffect(() => {
-    // Skip fetching if skip parameter is true
-    if (skip) {
-      return;
-    }
+    // // Skip fetching if skip parameter is true
+    // if (skip) {
+    //   return;
+    // }
 
     // Prevent fetching if already fetching
     if (isFetchingRef.current) {
