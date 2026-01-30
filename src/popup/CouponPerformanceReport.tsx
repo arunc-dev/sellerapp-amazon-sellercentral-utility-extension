@@ -256,7 +256,6 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onSearch={(val) => {
                   setSearchQuery(val);
-                  console.log("Search coupon by", searchField, val);
                 }}
               />
             </div>
@@ -402,7 +401,6 @@ const CouponPerformanceReport: FC<CouponPerformanceReportProps> = ({
                     );
                     alert("Failed to fetch coupon performance report");
                   } else {
-                    console.log("Coupon Performance data:", response);
                     setCouponData(response.rows || []);
                     // Export to CSV
                     exportCouponPerformanceCSV(response.rows || []);

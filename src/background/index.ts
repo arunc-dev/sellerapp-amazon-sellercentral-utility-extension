@@ -58,8 +58,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
   if (request.type === "GET_CUSTOMER_JOURNEY_METADATA") {
     (async () => {
-      console.log(request, "fajsfbh");
-
       try {
         const baseDomain = request.baseDomain || "sellercentral.amazon.com";
         const dashboardResponse = await fetch(
@@ -675,10 +673,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
             pageNumber++;
           }
         }
-        console.log("[Brand Analytics] Final aggregated data:", {
-          totalItems,
-          rows: allRows,
-        });
         sendResponse({
           status: "success",
           totalItems,

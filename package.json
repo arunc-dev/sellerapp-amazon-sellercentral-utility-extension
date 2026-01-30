@@ -1,7 +1,7 @@
 {
-  "name": "sellerapp-utility-extension",
-  "displayName": "SellerApp Utility Extension",
-  "version": "0.0.2",
+  "name": "amazon-sellerapp-utility-extension",
+  "displayName": "Amazon SellerApp Utility Extension",
+  "version": "0.0.3",
   "author": "",
   "description": "Enhance your Amazon Seller Central experience with powerful productivity tools.",
   "type": "module",

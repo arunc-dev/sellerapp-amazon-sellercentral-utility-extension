@@ -49,11 +49,6 @@ export const useCustomerJourneyMetadata = (
   baseDomain: string = "sellercentral.amazon.com",
   skip: boolean = false
 ): CustomerJourneyMetadataState => {
-  console.log(
-    "Fetching Customer Journey metadata for domain:",
-    baseDomain,
-    selectedCountries
-  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [brandOptions, setBrandOptions] = useState<BrandOption[]>([]);
@@ -89,12 +84,6 @@ export const useCustomerJourneyMetadata = (
     isFetchingRef.current = true;
     setLoading(true);
     setError(null);
-    console.log(
-      "Requesting Customer Journey metadata for domain:",
-      baseDomain,
-      "and countries:",
-      selectedCountries
-    );
     chrome.runtime.sendMessage(
       {
         type: "GET_CUSTOMER_JOURNEY_METADATA",
@@ -142,10 +131,6 @@ export const useCustomerJourneyMetadata = (
           (v: any) => v.id === "query-performance-asin-view"
         );
         const asinFilter = asinView?.filters?.find((f: any) => f.id === "asin");
-
-        console.log("Query Performance metadata received:", !!queryPerfRaw);
-        console.log("ASIN filter found:", !!asinFilter);
-        console.log("ASIN values count:", asinFilter?.values?.length);
 
         const brands: BrandOption[] = (brandFilter?.values ?? []).map(
           (v: any) => ({

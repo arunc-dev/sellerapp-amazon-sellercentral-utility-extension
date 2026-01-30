@@ -246,7 +246,6 @@ const AmazonSearchQueryPerformance: FC<AmazonSearchQueryPerformanceProps> = ({
   );
   const [selectedAsins, setSelectedAsins] = useState<string[]>([]);
   const isAsins = mode === "ASINs";
-  console.log(selectedGeo, "SelectedGeo");
 
   // Load initial geo from cache on mount
   useEffect(() => {
@@ -459,10 +458,6 @@ const AmazonSearchQueryPerformance: FC<AmazonSearchQueryPerformanceProps> = ({
           const asin = selectedAsins[i];
           const asinInfo = asinOptions.find((opt: any) => opt.value === asin);
 
-          console.log(
-            `Fetching data for ASIN ${i + 1}/${selectedAsins.length}: ${asin}`
-          );
-
           const filterSelections = [
             { id: "asin", value: asin, valueType: "ASIN" },
             ...baseFilters,
@@ -494,11 +489,6 @@ const AmazonSearchQueryPerformance: FC<AmazonSearchQueryPerformanceProps> = ({
                 }
               );
             });
-
-            console.log(
-              `Response for ASIN ${asin}:`,
-              JSON.stringify(response, null, 2)
-            );
           } catch (msgError) {
             console.error(`Message error for ASIN ${asin}:`, msgError);
             continue; // Skip this ASIN and continue with next

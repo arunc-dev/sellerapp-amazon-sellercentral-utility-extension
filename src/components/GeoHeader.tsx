@@ -19,7 +19,6 @@ export const GeoHeader: FC<GeoHeaderProps> = ({
 }) => {
   const handleGeoSelect = useCallback(
     (geoDetails: GeoMapsModel) => {
-      console.log("Selected geo:", geoDetails);
       if (onGeoChange) {
         onGeoChange(geoDetails);
       }
